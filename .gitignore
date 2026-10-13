@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Secrets: your PrijsProfeet key lives here and must never be committed
+.env
+.env.*
+!.env.example
+
+# Cached API responses
+.cache/

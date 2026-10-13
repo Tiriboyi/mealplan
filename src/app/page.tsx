@@ -1,5 +1,5 @@
-import Planner from "@/components/Planner";
+import WeekView from "@/components/WeekView";
 
 export default function Home() {
-  return <Planner />;
+  return <WeekView />;
 }

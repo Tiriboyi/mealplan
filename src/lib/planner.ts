@@ -133,6 +133,11 @@ export function alternatives(recipeIds: string[], position: number, index: DealI
     .map((x) => x.id);
 }
 
+/** The ingredients of `recipe` with a promotion this week, cupboard staples aside. */
+export function onOffer(recipe: Recipe, index: DealIndex): Ingredient[] {
+  return [recipe.main, ...recipe.with].map((id) => INGREDIENT[id]).filter((i) => !i.pantry && index.has(i.id));
+}
+
 export type MealItem = { ingredient: Ingredient; deal: Deal | null };
 export type Meal = { recipe: Recipe; items: MealItem[] };
 

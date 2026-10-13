@@ -11,3 +11,7 @@ next-env.d.ts
 
 # Cached API responses
 .cache/
+.agents/
+.augment/
+.claude/
+*/prompts/

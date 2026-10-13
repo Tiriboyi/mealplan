@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Weekly dinners from this week's supermarket promotions.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f6f3ec",
-    theme_color: "#1f6f4a",
+    background_color: "#f4f4f8",
+    theme_color: "#ff724c",
     icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
   };
 }

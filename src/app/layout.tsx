@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Instrument_Sans } from "next/font/google";
+import { Instrument_Serif } from "next/font/google";
+import localFont from "next/font/local";
 import AppShell from "@/components/AppShell";
 import PlanProvider from "@/components/PlanProvider";
 import "./globals.css";
 
-const display = Fraunces({ subsets: ["latin"], variable: "--font-display" });
-const body = Instrument_Sans({ subsets: ["latin"], variable: "--font-body" });
+// Instrument Serif ships a single weight; Satoshi is not on Google Fonts, so it is self-hosted.
+const display = Instrument_Serif({ subsets: ["latin"], weight: "400", variable: "--font-display" });
+const body = localFont({ src: "./fonts/Satoshi-Variable.woff2", weight: "300 900", variable: "--font-body" });
 
 export const metadata: Metadata = {
   title: { default: "Mealplan", template: "%s · Mealplan" },

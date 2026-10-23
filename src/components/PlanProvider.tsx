@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { buildIndex, fitsWeek, realize, suggest, totals, type DealIndex, type Plan, type PromoLine, type Totals } from "@/lib/planner";
+import { budgetStatus, type BudgetStatus } from "@/lib/budget";
+import { buildIndex, keepOrPlan, planWeek, realize, totals, type DealIndex, type Plan, type PromoLine, type Totals, type Week } from "@/lib/planner";
 import { loadSettings, saveSettings, type Settings } from "@/lib/settings";
 import type { Deal } from "@/lib/types";
 import RecipeSheet from "./RecipeSheet";
@@ -12,7 +13,7 @@ type Load =
   | { state: "error"; message: string }
   | { state: "ready"; deals: Deal[]; usingKey: boolean };
 
-type SavedPlan = { recipeIds: string[]; skipped: string[]; ticked: string[] };
+type SavedPlan = Week & { skipped: string[]; ticked: string[] };
 
 type Sheet = { kind: "recipe"; id: string } | { kind: "swap"; position: number } | null;
 
@@ -28,6 +29,10 @@ type PlanContext = {
   /** Promotion lines still on the list, and what they add up to. */
   buying: PromoLine[];
   sum: Totals;
+  /** How `sum` compares with the budget; null without one. */
+  budget: BudgetStatus;
+  /** The planner found no week within the budget. */
+  overBudget: boolean;
   shuffle: () => void;
   replace: (position: number, recipeId: string) => void;
   toggleSkip: (id: string) => void;
@@ -44,9 +49,16 @@ const PLAN_KEY = "mealplan.plan";
 function loadPlan(): SavedPlan {
   try {
     const saved = JSON.parse(localStorage.getItem(PLAN_KEY) ?? "{}") as Partial<SavedPlan>;
-    return { recipeIds: saved.recipeIds ?? [], skipped: saved.skipped ?? [], ticked: saved.ticked ?? [] };
+    return {
+      recipeIds: saved.recipeIds ?? [],
+      skipped: saved.skipped ?? [],
+      ticked: saved.ticked ?? [],
+      // Plans saved before budgets existed were planned without one.
+      budget: typeof saved.budget === "number" ? saved.budget : null,
+      overBudget: saved.overBudget === true,
+    };
   } catch {
-    return { recipeIds: [], skipped: [], ticked: [] };
+    return { recipeIds: [], skipped: [], ticked: [], budget: null, overBudget: false };
   }
 }
 
@@ -63,7 +75,7 @@ export function usePlan(): PlanContext {
 export default function PlanProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [load, setLoad] = useState<Load>({ state: "loading" });
-  const [recipeIds, setRecipeIds] = useState<string[]>([]);
+  const [week, setWeek] = useState<Week>({ recipeIds: [], budget: null, overBudget: false });
   const [skipped, setSkipped] = useState<string[]>([]);
   const [ticked, setTicked] = useState<string[]>([]);
   const [seed, setSeed] = useState(0);
@@ -71,10 +83,10 @@ export default function PlanProvider({ children }: { children: React.ReactNode }
   const [sheet, setSheet] = useState<Sheet>(null);
 
   useEffect(() => {
-    const plan = loadPlan();
-    setRecipeIds(plan.recipeIds);
-    setSkipped(plan.skipped);
-    setTicked(plan.ticked);
+    const { skipped, ticked, ...saved } = loadPlan();
+    setWeek(saved);
+    setSkipped(skipped);
+    setTicked(ticked);
     setSettings(loadSettings());
   }, []);
 
@@ -104,20 +116,21 @@ export default function PlanProvider({ children }: { children: React.ReactNode }
   const deals = load.state === "ready" ? load.deals : null;
   const index = useMemo(() => (deals && prefs ? buildIndex(deals, prefs) : null), [deals, prefs]);
 
-  // Keep a saved week as long as it still fits; otherwise plan a fresh one.
+  // Keep a saved week as long as it still fits, and the budget it was planned under still holds.
   useEffect(() => {
     if (!index || !prefs) return;
-    setRecipeIds((current) => (fitsWeek(current, prefs) ? current : suggest(index, prefs)));
+    setWeek((current) => keepOrPlan(current, index, prefs));
   }, [index, prefs]);
 
+  const { recipeIds } = week;
   useEffect(() => {
-    if (!settings || recipeIds.length === 0) return;
+    if (!settings || week.recipeIds.length === 0) return;
     try {
-      localStorage.setItem(PLAN_KEY, JSON.stringify({ recipeIds, skipped, ticked } satisfies SavedPlan));
+      localStorage.setItem(PLAN_KEY, JSON.stringify({ ...week, skipped, ticked } satisfies SavedPlan));
     } catch {
       // Private browsing: the plan simply lasts for this visit.
     }
-  }, [settings, recipeIds, skipped, ticked]);
+  }, [settings, week, skipped, ticked]);
 
   const plan = useMemo(
     () => (index && prefs && recipeIds.length ? realize(recipeIds, index, prefs) : null),
@@ -126,11 +139,12 @@ export default function PlanProvider({ children }: { children: React.ReactNode }
 
   const buying = useMemo(() => plan?.promo.filter((l) => !skipped.includes(l.deal.id)) ?? [], [plan, skipped]);
   const sum = useMemo(() => totals(buying), [buying]);
+  const budget = budgetStatus(sum.pay, prefs?.budget ?? null);
 
   function shuffle() {
     if (!index || !prefs) return;
     setSeed(seed + 1);
-    setRecipeIds(suggest(index, prefs, seed + 1));
+    setWeek(planWeek(index, prefs, seed + 1));
     setSkipped([]);
     setTicked([]);
   }
@@ -145,8 +159,11 @@ export default function PlanProvider({ children }: { children: React.ReactNode }
     ticked,
     buying,
     sum,
+    budget,
+    overBudget: week.overBudget,
     shuffle,
-    replace: (position, recipeId) => setRecipeIds(recipeIds.map((id, i) => (i === position ? recipeId : id))),
+    // A swap by hand is not held to the budget; the shopping page shows where it lands.
+    replace: (position, recipeId) => setWeek({ ...week, recipeIds: recipeIds.map((id, i) => (i === position ? recipeId : id)) }),
     toggleSkip: (id) => setSkipped(toggle(skipped, id)),
     toggleTick: (id) => setTicked(toggle(ticked, id)),
     applySettings: (next) => {

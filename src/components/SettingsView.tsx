@@ -2,6 +2,7 @@
 
 import { Check, Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { BUDGET_ERROR, parseBudget } from "@/lib/budget";
 import { RETAILERS, type PromoStatus } from "@/lib/retailers";
 import type { Settings } from "@/lib/settings";
 import { usePlan } from "./PlanProvider";
@@ -29,17 +30,39 @@ export default function SettingsView() {
   );
 }
 
+/** 60 -> "60.00"; no budget -> an empty field. */
+const budgetText = (budget: number | null) => (budget === null ? "" : budget.toFixed(2));
+
 function SettingsForm({ settings, onSave }: { settings: Settings; onSave: (next: Settings) => void }) {
   const [draft, setDraft] = useState(settings);
   const [exclude, setExclude] = useState(settings.prefs.exclude.join(", "));
+  const [budget, setBudget] = useState(budgetText(settings.prefs.budget));
+  const [budgetError, setBudgetError] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const typed = parseBudget(budget);
   const next: Settings = {
     ...draft,
     apiKey: draft.apiKey.trim(),
-    prefs: { ...draft.prefs, exclude: exclude.split(",").map((w) => w.trim()).filter(Boolean) },
+    prefs: {
+      ...draft.prefs,
+      exclude: exclude.split(",").map((w) => w.trim()).filter(Boolean),
+      // An amount that is not a budget never replaces the saved one.
+      budget: typed.ok ? typed.value : settings.prefs.budget,
+    },
   };
-  const dirty = JSON.stringify(next) !== JSON.stringify(settings);
+  const dirty = JSON.stringify(next) !== JSON.stringify(settings) || !typed.ok;
+
+  function stepBudget(by: number) {
+    const current = typed.ok ? (typed.value ?? 0) : 0;
+    setBudget(budgetText(Math.round((current + by) * 100) / 100));
+    setBudgetError(false);
+  }
+
+  function checkBudget() {
+    setBudgetError(!typed.ok);
+    if (typed.ok) setBudget(budgetText(typed.value));
+  }
 
   useEffect(() => {
     if (!saved) return;
@@ -56,6 +79,7 @@ function SettingsForm({ settings, onSave }: { settings: Settings; onSave: (next:
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!typed.ok) return setBudgetError(true);
     onSave(next);
     setSaved(true);
   }
@@ -66,6 +90,43 @@ function SettingsForm({ settings, onSave }: { settings: Settings; onSave: (next:
         <legend>Household</legend>
         <Stepper label="People at the table" value={draft.prefs.people} min={1} max={10} onChange={(people) => setPrefs({ people })} />
         <Stepper label="Dinners to plan" value={draft.prefs.days} min={1} max={7} onChange={(days) => setPrefs({ days })} />
+        <div className="stepper">
+          <label htmlFor="budget">Weekly budget (€)</label>
+          <div role="group" aria-label="Weekly budget (€)">
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => stepBudget(-1)}
+              disabled={!typed.ok || typed.value === null || typed.value < 2}
+              aria-label="One fewer"
+            >
+              <Minus aria-hidden="true" />
+            </button>
+            <input
+              id="budget"
+              type="text"
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="No limit"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              onBlur={checkBudget}
+              aria-invalid={budgetError}
+              aria-describedby={budgetError ? "budget-error budget-help" : "budget-help"}
+            />
+            <button type="button" className="icon-button" onClick={() => stepBudget(1)} aria-label="One more">
+              <Plus aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        {budgetError && (
+          <p className="field-error" role="alert" id="budget-error">
+            {BUDGET_ERROR}
+          </p>
+        )}
+        <p className="meta" id="budget-help">
+          Most the promotion items may cost in a week. Leave empty for no limit.
+        </p>
       </fieldset>
 
       <fieldset className="card">
@@ -177,11 +238,13 @@ function SettingsForm({ settings, onSave }: { settings: Settings; onSave: (next:
                 onClick={() => {
                   setDraft(settings);
                   setExclude(settings.prefs.exclude.join(", "));
+                  setBudget(budgetText(settings.prefs.budget));
+                  setBudgetError(false);
                 }}
               >
                 Reset
               </button>
-              <button type="submit" className="button primary" disabled={draft.retailers.length === 0}>
+              <button type="submit" className="button primary" disabled={draft.retailers.length === 0 || !typed.ok}>
                 Save changes
               </button>
             </>

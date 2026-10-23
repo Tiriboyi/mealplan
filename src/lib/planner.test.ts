@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { allowed, isPork, isShellfish } from "./diet";
 import { ingredientsFor } from "./ingredients";
-import { alternatives, buildIndex, fitsWeek, realize, suggest, totals } from "./planner";
+import { alternatives, buildIndex, fitsWeek, keepOrPlan, planWeek, realize, suggest, totals, weekCost } from "./planner";
 import { packGrams, purchase } from "./pricing";
 import { RECIPE, RECIPES } from "./recipes";
 import { DEFAULT_PREFS, type Deal } from "./types";
@@ -238,5 +238,149 @@ describe("planning", () => {
       realize(["sadza-chicken-stew"], index, { ...DEFAULT_PREFS, people }).promo.find((l) => l.ingredient.id === "chicken_pieces")!;
     expect(line(2).units).toBe(1);
     expect(line(5).units).toBe(2);
+  });
+
+  describe("weekly budget", () => {
+    const regularLines = (ids: string[], prefs = DEFAULT_PREFS) => realize(ids, index, prefs).regular.length;
+    const greedy = suggest(index, DEFAULT_PREFS);
+
+    /** The cheapest valid week one swap away from the greedy week, with no extra regular-price lines. */
+    function cheaperNeighbour(): string[] {
+      let best: string[] | null = null;
+      for (let position = 0; position < greedy.length; position++)
+        for (const alt of alternatives(greedy, position, index, DEFAULT_PREFS)) {
+          const ids = greedy.map((id, i) => (i === position ? alt : id));
+          if (!fitsWeek(ids, DEFAULT_PREFS) || regularLines(ids) > regularLines(greedy)) continue;
+          if (!best || weekCost(ids, index, DEFAULT_PREFS) < weekCost(best, index, DEFAULT_PREFS)) best = ids;
+        }
+      return best!;
+    }
+
+    // RFC-2026-001:AC-1
+    test("there is no budget by default", () => {
+      expect(DEFAULT_PREFS.budget).toBeNull();
+    });
+
+    test("a week costs what its promotion lines add up to", () => {
+      expect(weekCost(["sadza-chicken-stew"], index, DEFAULT_PREFS)).toBe(5.99);
+    });
+
+    // RFC-2026-001:AC-5
+    test("without a budget the week is exactly what the planner picks today", () => {
+      for (let seed = 0; seed <= 20; seed++)
+        for (const days of [2, 5, 7]) {
+          const prefs = { ...DEFAULT_PREFS, days };
+          expect(planWeek(index, prefs, seed)).toEqual({ recipeIds: suggest(index, prefs, seed), budget: null, overBudget: false });
+        }
+    });
+
+    // RFC-2026-001:AC-6
+    test("finds a week within budget when one exists", () => {
+      const affordable = cheaperNeighbour();
+      const budget = weekCost(affordable, index, DEFAULT_PREFS);
+      // The fixture must make the greedy week too expensive, or this proves nothing.
+      expect(weekCost(greedy, index, DEFAULT_PREFS)).toBeGreaterThan(budget);
+
+      const prefs = { ...DEFAULT_PREFS, budget };
+      for (const seed of [0, 1, 2, 3]) {
+        const week = planWeek(index, prefs, seed);
+        expect(weekCost(week.recipeIds, index, prefs)).toBeLessThanOrEqual(budget);
+        expect(week).toMatchObject({ budget, overBudget: false });
+        expect(fitsWeek(week.recipeIds, prefs)).toBe(true);
+      }
+    });
+
+    // RFC-2026-001:AC-7
+    test("an impossible budget gives the cheapest week found, flagged over budget", () => {
+      const prefs = { ...DEFAULT_PREFS, budget: 1 };
+      for (const seed of [0, 1, 2]) {
+        const week = planWeek(index, prefs, seed);
+        expect(week).toMatchObject({ budget: 1, overBudget: true });
+        expect(weekCost(week.recipeIds, index, prefs)).toBeLessThanOrEqual(weekCost(suggest(index, prefs, seed), index, prefs));
+        expect(weekCost(week.recipeIds, index, prefs)).toBeLessThanOrEqual(weekCost(cheaperNeighbour(), index, prefs));
+      }
+    });
+
+    // RFC-2026-001:AC-15
+    test("a budget never buys savings by moving food to regular price", () => {
+      // With no promotions at all a week "costs" €0 while every item is at regular price.
+      const nothingOnOffer = suggest(buildIndex([], DEFAULT_PREFS), DEFAULT_PREFS);
+      expect(weekCost(nothingOnOffer, index, DEFAULT_PREFS)).toBeLessThan(weekCost(greedy, index, DEFAULT_PREFS));
+      expect(regularLines(nothingOnOffer)).toBeGreaterThan(regularLines(greedy));
+
+      for (const budget of [0.01, 1, 10, 20, 30])
+        for (let seed = 0; seed < 10; seed++)
+          for (const days of [2, 5, 7]) {
+            const prefs = { ...DEFAULT_PREFS, days, budget };
+            const week = planWeek(index, prefs, seed);
+            expect(regularLines(week.recipeIds, prefs)).toBeLessThanOrEqual(regularLines(suggest(index, prefs, seed), prefs));
+          }
+    });
+
+    // RFC-2026-001:AC-14
+    test("a budget keeps sadza once or twice a week and pork and shellfish out", () => {
+      const sadzaDeals = [...deals, deal("AH Speklapjes a la minute", "vlees", { price: 0.5, originalPrice: 3 })];
+      const idx = buildIndex(sadzaDeals, DEFAULT_PREFS);
+      for (const budget of [0.01, 10, 25, 1000])
+        for (let seed = 0; seed < 15; seed++)
+          for (const days of [2, 5, 7]) {
+            const prefs = { ...DEFAULT_PREFS, days, budget };
+            const week = planWeek(idx, prefs, seed);
+            const nights = sadzaNights(week.recipeIds);
+            expect(nights).toBeGreaterThanOrEqual(1);
+            expect(nights).toBeLessThanOrEqual(2);
+            const bought = realize(week.recipeIds, idx, prefs).promo.map((l) => l.deal.name);
+            expect(bought.some((n) => isPork(n) || isShellfish(n))).toBe(false);
+          }
+    });
+
+    describe("keeping a saved week", () => {
+      const handEdited = greedy.map((id, i) => (i === 0 ? alternatives(greedy, 0, index, DEFAULT_PREFS)[0] : id));
+      const tooExpensive = weekCost(handEdited, index, DEFAULT_PREFS) - 1;
+
+      test("a saved plan from before budgets is kept as it is", () => {
+        const week = { recipeIds: handEdited, budget: null, overBudget: false };
+        expect(keepOrPlan(week, index, DEFAULT_PREFS)).toBe(week);
+      });
+
+      // RFC-2026-001:AC-8
+      test("a week flagged over budget is not replanned while the budget stays the same", () => {
+        const prefs = { ...DEFAULT_PREFS, budget: 1 };
+        const week = { recipeIds: handEdited, budget: 1, overBudget: true };
+        expect(keepOrPlan(week, index, prefs)).toBe(week);
+      });
+
+      // RFC-2026-001:AC-8 — a manual swap that went over budget is not undone on reload.
+      test("a hand-edited week over budget is kept while the budget stays the same", () => {
+        const prefs = { ...DEFAULT_PREFS, budget: tooExpensive };
+        const week = { recipeIds: handEdited, budget: tooExpensive, overBudget: false };
+        expect(keepOrPlan(week, index, prefs)).toBe(week);
+      });
+
+      // RFC-2026-001:AC-9
+      test("a new budget the week is over replans it", () => {
+        const prefs = { ...DEFAULT_PREFS, budget: tooExpensive };
+        const week = { recipeIds: handEdited, budget: null, overBudget: false };
+        expect(keepOrPlan(week, index, prefs)).toEqual(planWeek(index, prefs));
+      });
+
+      // RFC-2026-001:AC-9
+      test("a new budget the week already meets keeps it and remembers the budget", () => {
+        const prefs = { ...DEFAULT_PREFS, budget: 1000 };
+        const week = { recipeIds: handEdited, budget: null, overBudget: false };
+        expect(keepOrPlan(week, index, prefs)).toEqual({ recipeIds: handEdited, budget: 1000, overBudget: false });
+      });
+
+      test("removing the budget keeps the week and clears the flag", () => {
+        const week = { recipeIds: handEdited, budget: 1, overBudget: true };
+        expect(keepOrPlan(week, index, DEFAULT_PREFS)).toEqual({ recipeIds: handEdited, budget: null, overBudget: false });
+      });
+
+      test("a week that breaks the sadza rule is replanned whatever the budget", () => {
+        const tooMuch = ["sadza-beef-stew", "sadza-chicken-stew", "oxtail", "rice-chicken-stew", "bean-stew", "macaroni-mince", "baked-salmon"];
+        const prefs = { ...DEFAULT_PREFS, budget: 1 };
+        expect(keepOrPlan({ recipeIds: tooMuch, budget: 1, overBudget: true }, index, prefs)).toEqual(planWeek(index, prefs));
+      });
+    });
   });
 });

@@ -203,3 +203,65 @@ export function totals(lines: Purchase[]): Totals {
   const saving = Math.round((normal - pay) * 100) / 100;
   return { pay, normal, saving, percent: normal > 0 ? Math.round((saving / normal) * 100) : 0 };
 }
+
+/** What the promotion lines of a week add up to: the total the budget is held against. */
+export function weekCost(recipeIds: string[], index: DealIndex, prefs: Prefs): number {
+  return totals(realize(recipeIds, index, prefs).promo).pay;
+}
+
+/** A planned week, with the budget it was planned under. */
+export type Week = { recipeIds: string[]; budget: number | null; overBudget: boolean };
+
+/** Other promotion-led weeks to try before swapping single dinners. */
+const BUDGET_SEEDS = 40;
+
+/**
+ * The planner's week, or with a budget the first week it finds within it. A cheaper week
+ * only counts if it has no more regular-price lines than the planner's own: those cost
+ * money too, but the budget cannot see them. Failing that, the cheapest week found.
+ */
+export function planWeek(index: DealIndex, prefs: Prefs, seed = 0): Week {
+  const first = suggest(index, prefs, seed);
+  const { budget } = prefs;
+  if (budget === null) return { recipeIds: first, budget, overBudget: false };
+
+  const regularLimit = realize(first, index, prefs).regular.length;
+  const cost = (ids: string[]) => {
+    const plan = realize(ids, index, prefs);
+    return plan.regular.length > regularLimit ? Infinity : totals(plan.promo).pay;
+  };
+
+  let best = first;
+  let bestCost = cost(first);
+  for (let i = 1; i <= BUDGET_SEEDS && bestCost > budget; i++) {
+    const ids = suggest(index, prefs, seed + i * 1000);
+    const c = cost(ids);
+    if (c < bestCost) [best, bestCost] = [ids, c];
+  }
+  // Still over: swap the one dinner that saves most, until within budget or nothing helps.
+  while (bestCost > budget) {
+    let next: string[] | null = null;
+    let nextCost = bestCost;
+    for (let position = 0; position < best.length; position++)
+      for (const alt of alternatives(best, position, index, prefs)) {
+        const ids = best.map((id, i) => (i === position ? alt : id));
+        const c = cost(ids);
+        if (c < nextCost && fitsWeek(ids, prefs)) [next, nextCost] = [ids, c];
+      }
+    if (!next) break;
+    [best, bestCost] = [next, nextCost];
+  }
+  return { recipeIds: best, budget, overBudget: bestCost > budget };
+}
+
+/**
+ * Keep a saved week unless it breaks the rules, or the budget changed and it is now over.
+ * A week flagged over budget, or swapped by hand, stays as long as the budget does.
+ */
+export function keepOrPlan(week: Week, index: DealIndex, prefs: Prefs): Week {
+  if (!fitsWeek(week.recipeIds, prefs)) return planWeek(index, prefs);
+  if (week.budget === prefs.budget) return week;
+  if (prefs.budget === null || weekCost(week.recipeIds, index, prefs) <= prefs.budget)
+    return { recipeIds: week.recipeIds, budget: prefs.budget, overBudget: false };
+  return planWeek(index, prefs);
+}

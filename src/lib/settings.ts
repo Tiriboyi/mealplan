@@ -22,11 +22,16 @@ export function loadSettings(): Settings {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Partial<Settings>;
     const retailers = (saved.retailers ?? DEFAULT_RETAILERS).filter((r) => r in RETAILERS);
+    const budget = saved.prefs?.budget;
     return {
       ...DEFAULT_SETTINGS,
       ...saved,
       retailers: retailers.length ? retailers : DEFAULT_RETAILERS,
-      prefs: { ...DEFAULT_PREFS, ...saved.prefs },
+      prefs: {
+        ...DEFAULT_PREFS,
+        ...saved.prefs,
+        budget: typeof budget === "number" && Number.isFinite(budget) && budget > 0 ? budget : null,
+      },
     };
   } catch {
     return DEFAULT_SETTINGS;

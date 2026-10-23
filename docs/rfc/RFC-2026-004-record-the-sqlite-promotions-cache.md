@@ -74,16 +74,16 @@ Last verified: 2026-10-23
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Given a new store, when a retailer has never been downloaded, then it has no sync state.
-- [ ] AC-2: Given stored products for several retailers, when one retailer is downloaded again in full, then only that retailer's rows are replaced, and its cursor and check time are saved.
-- [ ] AC-3: Given stored products, when products are read for a retailer, status and categories, then only matching rows are returned, with the whole stored product.
-- [ ] AC-4: Given a stored copy, when a batch of changes is applied, then deletes and upserts are applied in order (the last change wins) and the cursor moves to the batch's cursor.
-- [ ] AC-5: Given no sync state for a retailer, when deals are requested, then all of that retailer's products are downloaded once, after reading the changes feed's current cursor.
-- [ ] AC-6: Given a retailer checked less than 15 minutes ago, when deals are requested, then PrijsProfeet is not called and the local copy is served.
-- [ ] AC-7: Given a retailer checked 15 minutes ago or more, when deals are requested, then changes since the saved cursor are applied (following `has_more` pages).
-- [ ] AC-8: Given the changes feed answers 410 (cursor too old), when deals are requested, then the retailer is downloaded again in full.
-- [ ] AC-9: Given a stored copy and PrijsProfeet failing with any other error, when deals are requested, then the local copy is served and a warning is logged without the API key.
-- [ ] AC-10: Given two requests for the same retailer at the same time, when both arrive during a sync, then PrijsProfeet is synced once.
+- [x] AC-1: Given a new store, when a retailer has never been downloaded, then it has no sync state.
+- [x] AC-2: Given stored products for several retailers, when one retailer is downloaded again in full, then only that retailer's rows are replaced, and its cursor and check time are saved.
+- [x] AC-3: Given stored products, when products are read for a retailer, status and categories, then only matching rows are returned, with the whole stored product.
+- [x] AC-4: Given a stored copy, when a batch of changes is applied, then deletes and upserts are applied in order (the last change wins) and the cursor moves to the batch's cursor.
+- [x] AC-5: Given no sync state for a retailer, when deals are requested, then all of that retailer's products are downloaded once, after reading the changes feed's current cursor.
+- [x] AC-6: Given a retailer checked less than 15 minutes ago, when deals are requested, then PrijsProfeet is not called and the local copy is served.
+- [x] AC-7: Given a retailer checked 15 minutes ago or more, when deals are requested, then changes since the saved cursor are applied (following `has_more` pages).
+- [x] AC-8: Given the changes feed answers 410 (cursor too old), when deals are requested, then the retailer is downloaded again in full.
+- [x] AC-9: Given a stored copy and PrijsProfeet failing with any other error, when deals are requested, then the local copy is served and a warning is logged without the API key.
+- [x] AC-10: Given two requests for the same retailer at the same time, when both arrive during a sync, then PrijsProfeet is synced once.
 
 ## Out Of Scope
 
@@ -113,3 +113,4 @@ Last verified: 2026-10-23
 | 2026-10-23 | Fortune Tiriboyi | Created draft |
 | 2026-10-23 | Claude (for Fortune Tiriboyi) | Filled in: retroactive record of `79081ad`, plus tests for the untested sync rules and an ADR |
 | 2026-10-23 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |
+| 2026-10-23 | Fortune Tiriboyi | Implemented — see CR-2026-004 |

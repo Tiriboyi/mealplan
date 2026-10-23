@@ -95,3 +95,4 @@ Last verified: 2026-10-23
 | 2026-10-23 | Fortune Tiriboyi | Created draft |
 | 2026-10-23 | Claude (for Fortune Tiriboyi) | Filled in from the npm audit findings |
 | 2026-10-23 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |
+| 2026-10-23 | Fortune Tiriboyi | Implemented — see CR-2026-002 |

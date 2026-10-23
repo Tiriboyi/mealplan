@@ -1,0 +1,48 @@
+{
+  "$schema": "devrailsv2/config@1",
+  "project": "mealplan",
+  "mode": "existing",
+  "stack": "node",
+  "migration": null,
+  "strictness": "standard",
+  "testCommand": "npm test",
+  "paths": {
+    "src": [
+      "src/**",
+      "lib/**",
+      "app/**",
+      "server/**",
+      "api/**"
+    ],
+    "tests": [
+      "test/**",
+      "tests/**",
+      "**/__tests__/**",
+      "**/*.test.*",
+      "**/*.spec.*"
+    ]
+  },
+  "tracker": {
+    "provider": "github",
+    "default": "github",
+    "github": {
+      "repo": "Tiriboyi/mealplan",
+      "auth": "gh-cli",
+      "tokenEnv": "GITHUB_TOKEN"
+    }
+  },
+  "approval": {
+    "require": "either",
+    "prLabel": "rfc-approved",
+    "approvers": [
+      "tiriboyifortune@gmail.com"
+    ],
+    "decisionOwner": "Fortune Tiriboyi"
+  },
+  "setupRfc": "2026-000",
+  "serena": {
+    "enabled": true,
+    "hooks": true
+  },
+  "created": "2026-10-23"
+}

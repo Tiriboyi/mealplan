@@ -4,5 +4,55 @@
       "mcp__claude-in-chrome__tabs_context_mcp",
       "ClaudeInChromeDomain(www.prijsprofeet.nl)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*serena.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.rails/tool/bin/devrailsv2.js\" hook claude"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "serena-hooks remind --client claude-code"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.rails/tool/bin/devrailsv2.js\" hook session-start"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "serena-hooks activate --client claude-code"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "serena-hooks cleanup --client claude-code"
+          }
+        ]
+      }
+    ]
   }
 }

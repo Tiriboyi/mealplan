@@ -1,0 +1,3 @@
+# devrailsv2
+.githooks/* text eol=lf
+.rails/tool/** text eol=lf

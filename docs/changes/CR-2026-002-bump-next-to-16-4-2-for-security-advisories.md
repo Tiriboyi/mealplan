@@ -18,7 +18,7 @@ The RFC carries an approved `test_exemption` (patch bump, no behaviour change). 
 
 ## Known limitations & follow-ups
 - The smoke test was HTTP-only (status codes and API body). Pages were not checked in a browser.
-- The generated "Files changed" list below is diffed against `origin/main`. `main` appears to have a separate root commit, so the list includes all earlier work (devrailsv2 setup, fonts, SQLite) and not only this change. The commits for this RFC touch only `package.json`, `package-lock.json` and RFC/docs files.
+- The generated "Files changed" list below is diffed against `origin/main`. `main` (`ec37110`, "Added images") is behind `typography-instrument-satoshi`, which has not been merged yet. The list therefore includes all earlier unmerged work (devrailsv2 setup, fonts, SQLite, RFC-2026-001 approval) and not only this change. The commits for this RFC touch only `package.json`, `package-lock.json` and RFC/docs files.
 - Follow-up: rebase `rfc/2026-001-weekly-budget-limit-for-the-meal-plan` onto this fix and resume RFC-2026-001.
 
 <!-- devrailsv2:generated:start -->

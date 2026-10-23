@@ -108,21 +108,21 @@ Design decisions (requester, 2026-10-23):
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Given default settings, when the Settings page opens, then a "Weekly budget (€)" stepper with a typeable amount is shown and is empty, and `DEFAULT_PREFS.budget` is `null`.
-- [ ] AC-2: Given the budget field, when the user presses + or −, then the amount changes by €1 (+ from empty starts at €1, and − never goes below €1). When the user types a decimal such as "59.50" or "59,50", then the amount is €59.50.
-- [ ] AC-3: Given the user enters 0, a negative number or non-numeric text, when the field loses focus, then "Enter an amount above €0" is shown, Save is blocked, and the saved budget is unchanged. Clearing the field (empty) is valid and removes the budget.
-- [ ] AC-4: Given a budget is saved, when the page is reloaded, then the budget is still set. Given saved settings from before this change (no `budget`), when they load, then the budget is empty.
-- [ ] AC-5: Given the budget is empty, when a plan is made (initial plan or Shuffle with any seed), then the planned week is identical to the week the current algorithm produces for the same deals, prefs and seed.
-- [ ] AC-6: Given a budget of €60 and a deal set in which at least one valid week has a promotion total of at most €60 and no more regular-price lines than the no-budget week, when a plan is made (initial or Shuffle), then the planned week's promotion total is at most €60 and the plan is not flagged over budget.
-- [ ] AC-7: Given a budget that no week the planner tries can meet, when a plan is made, then the planned week is the cheapest of the weeks tried (never more expensive than the no-budget week), and the plan is flagged over budget.
-- [ ] AC-8: Given a saved week that is flagged over budget or was edited by hand, when the app reloads or the deals reload with the same budget, then the week is not replanned. When the budget changes or Shuffle is pressed, then planning runs again and the flag is recalculated.
-- [ ] AC-9: Given a saved budget and a current week that is over it, when the user saves a new budget, then the week is replanned right away under AC-6/AC-7.
-- [ ] AC-10: Given a budget is set and the compared total exceeds it, when the shopping page opens, then "Over budget by €X.XX" is shown on the same line as the "Offers on the list" total in the `--danger` colour.
-- [ ] AC-11: Given a budget is set and the compared total is at most the budget, when the shopping page opens, then "€Y.YY under budget" is shown on the same line as the total in the muted style.
-- [ ] AC-12: Given a budget is set, when the shopping page shows the comparison, then it is labelled "promotion items only", and lines marked "I already have it" and regular-price lines are left out of the compared total.
-- [ ] AC-13: Given no budget is set, when the shopping page opens, then no budget text is shown.
-- [ ] AC-14: Given any budget, when a plan is made across seeds and 2/5/7 dinners, then sadza appears at least once and at most twice, and no pork or shellfish deal is used unless allowed in Settings.
-- [ ] AC-15: Given any budget, when a plan is made, then the planned week has no more "At regular price" lines than the week planned without a budget for the same deals, prefs and seed.
+- [x] AC-1: Given default settings, when the Settings page opens, then a "Weekly budget (€)" stepper with a typeable amount is shown and is empty, and `DEFAULT_PREFS.budget` is `null`.
+- [x] AC-2: Given the budget field, when the user presses + or −, then the amount changes by €1 (+ from empty starts at €1, and − never goes below €1). When the user types a decimal such as "59.50" or "59,50", then the amount is €59.50.
+- [x] AC-3: Given the user enters 0, a negative number or non-numeric text, when the field loses focus, then "Enter an amount above €0" is shown, Save is blocked, and the saved budget is unchanged. Clearing the field (empty) is valid and removes the budget.
+- [x] AC-4: Given a budget is saved, when the page is reloaded, then the budget is still set. Given saved settings from before this change (no `budget`), when they load, then the budget is empty.
+- [x] AC-5: Given the budget is empty, when a plan is made (initial plan or Shuffle with any seed), then the planned week is identical to the week the current algorithm produces for the same deals, prefs and seed.
+- [x] AC-6: Given a budget of €60 and a deal set in which at least one valid week has a promotion total of at most €60 and no more regular-price lines than the no-budget week, when a plan is made (initial or Shuffle), then the planned week's promotion total is at most €60 and the plan is not flagged over budget.
+- [x] AC-7: Given a budget that no week the planner tries can meet, when a plan is made, then the planned week is the cheapest of the weeks tried (never more expensive than the no-budget week), and the plan is flagged over budget.
+- [x] AC-8: Given a saved week that is flagged over budget or was edited by hand, when the app reloads or the deals reload with the same budget, then the week is not replanned. When the budget changes or Shuffle is pressed, then planning runs again and the flag is recalculated.
+- [x] AC-9: Given a saved budget and a current week that is over it, when the user saves a new budget, then the week is replanned right away under AC-6/AC-7.
+- [x] AC-10: Given a budget is set and the compared total exceeds it, when the shopping page opens, then "Over budget by €X.XX" is shown on the same line as the "Offers on the list" total in the `--danger` colour.
+- [x] AC-11: Given a budget is set and the compared total is at most the budget, when the shopping page opens, then "€Y.YY under budget" is shown on the same line as the total in the muted style.
+- [x] AC-12: Given a budget is set, when the shopping page shows the comparison, then it is labelled "promotion items only", and lines marked "I already have it" and regular-price lines are left out of the compared total.
+- [x] AC-13: Given no budget is set, when the shopping page opens, then no budget text is shown.
+- [x] AC-14: Given any budget, when a plan is made across seeds and 2/5/7 dinners, then sadza appears at least once and at most twice, and no pork or shellfish deal is used unless allowed in Settings.
+- [x] AC-15: Given any budget, when a plan is made, then the planned week has no more "At regular price" lines than the week planned without a budget for the same deals, prefs and seed.
 
 ## Out Of Scope
 
@@ -175,3 +175,4 @@ Design decisions (requester, 2026-10-23):
 | 2026-10-23 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |
 | 2026-10-23 | Claude (for Fortune Tiriboyi) | Back to draft for scope change. Added AC-15 (no more regular-price lines than the no-budget week) after a probe showed a no-promotion week totals €0. Reworded AC-6 and AC-8 to match. The saved week now records the budget it was planned under, so hand-edited weeks are kept. Money format and helper placement clarified. |
 | 2026-10-23 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |
+| 2026-10-23 | Fortune Tiriboyi | Implemented — see CR-2026-001 |

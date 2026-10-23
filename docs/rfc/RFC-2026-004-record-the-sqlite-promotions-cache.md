@@ -1,12 +1,12 @@
 ---
 id: RFC-2026-004
 title: Record the SQLite promotions cache
-status: draft
+status: approved
 type: change
 requested_by: Fortune Tiriboyi
 decision_owner: Fortune Tiriboyi
-approved_by: null
-approved_on: null
+approved_by: Fortune Tiriboyi <tiriboyifortune@gmail.com>
+approved_on: 2026-10-23
 created: 2026-10-23
 updated: 2026-10-23
 affected_areas: [src/lib/dealStore.ts, src/lib/dealStore.test.ts, src/lib/prijsprofeet.ts, src/lib/prijsprofeet.test.ts, .env.example, README.md, docs/adr/**]
@@ -112,3 +112,4 @@ Last verified: 2026-10-23
 |---|---|---|
 | 2026-10-23 | Fortune Tiriboyi | Created draft |
 | 2026-10-23 | Claude (for Fortune Tiriboyi) | Filled in: retroactive record of `79081ad`, plus tests for the untested sync rules and an ADR |
+| 2026-10-23 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |

@@ -1,12 +1,12 @@
 ---
 id: RFC-2026-003
 title: Load Satoshi from Fontshare instead of self-hosting it
-status: draft
+status: approved
 type: fast-track
 requested_by: Fortune Tiriboyi
 decision_owner: Fortune Tiriboyi
-approved_by: null
-approved_on: null
+approved_by: Fortune Tiriboyi <tiriboyifortune@gmail.com>
+approved_on: 2026-10-23
 created: 2026-10-23
 updated: 2026-10-23
 affected_areas: [src/app/layout.tsx, src/app/globals.css, src/app/fonts/**]
@@ -109,3 +109,4 @@ Last verified: 2026-10-23
 |---|---|---|
 | 2026-10-23 | Fortune Tiriboyi | Created draft |
 | 2026-10-23 | Claude (for Fortune Tiriboyi) | Filled in: retroactive record of `acad3e6` plus licence fix (load Satoshi from Fontshare) |
+| 2026-10-23 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |

@@ -8,10 +8,12 @@ function product(id: string, over: Partial<StoredProduct> = {}): StoredProduct {
 const ids = (rows: StoredProduct[]) => rows.map((r) => r.product_id);
 
 describe("DealStore", () => {
+  // RFC-2026-004:AC-1
   test("has no sync state until a retailer is downloaded", () => {
     expect(new DealStore(":memory:").syncState("jumbo")).toBeNull();
   });
 
+  // RFC-2026-004:AC-2
   test("a full download replaces only that retailer's rows", () => {
     const store = new DealStore(":memory:");
     store.replaceRetailer("jumbo", [product("j1"), product("j2")], 10, 1000);
@@ -23,6 +25,7 @@ describe("DealStore", () => {
     expect(store.syncState("jumbo")).toEqual({ cursor: 20, checkedAt: 2000 });
   });
 
+  // RFC-2026-004:AC-3
   test("filters by status and category", () => {
     const store = new DealStore(":memory:");
     store.replaceRetailer(
@@ -34,6 +37,7 @@ describe("DealStore", () => {
     expect(ids(store.products("jumbo", "upcoming", ["vlees"]))).toEqual(["soon"]);
   });
 
+  // RFC-2026-004:AC-4
   test("applies changes in order and moves the cursor", () => {
     const store = new DealStore(":memory:");
     store.replaceRetailer("jumbo", [product("a"), product("b")], 5, 1000);
@@ -53,6 +57,7 @@ describe("DealStore", () => {
     expect(store.syncState("jumbo")).toEqual({ cursor: 9, checkedAt: 3000 });
   });
 
+  // RFC-2026-004:AC-3
   test("keeps the whole product so new fields need no resync", () => {
     const store = new DealStore(":memory:");
     const full = { ...product("x"), name: "Kipfilet", price: 4.99 };

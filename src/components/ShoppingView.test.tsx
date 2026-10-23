@@ -58,6 +58,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Exact text, non-breaking spaces and all: money() formats "€ 4,50". */
+const exactly = (text: string) => (_: string, el: Element | null) => el?.textContent === text;
+
 /** A saved week planned under `budget`, so it is shown as it is. */
 async function open(budget: number | null) {
   localStorage.setItem("mealplan.settings", JSON.stringify({ ...DEFAULT_SETTINGS, prefs: { ...DEFAULT_PREFS, budget } }));
@@ -78,7 +81,7 @@ describe("budget on the shopping page", () => {
   // RFC-2026-001:AC-10
   test("over budget says by how much, in the warning colour, next to the total", async () => {
     const { totalRow } = await open(1);
-    const note = screen.getByText(budgetStatus(pay, 1)!.text);
+    const note = screen.getByText(exactly(budgetStatus(pay, 1)!.text));
     expect(note.textContent).toMatch(/^Over budget by /);
     expect(note.classList.contains("budget-over")).toBe(true);
     expect(totalRow.contains(note)).toBe(true);
@@ -87,7 +90,7 @@ describe("budget on the shopping page", () => {
   // RFC-2026-001:AC-11
   test("within budget says what is left, muted, next to the total", async () => {
     const { totalRow } = await open(1000);
-    const note = screen.getByText(budgetStatus(pay, 1000)!.text);
+    const note = screen.getByText(exactly(budgetStatus(pay, 1000)!.text));
     expect(note.textContent).toMatch(/ under budget$/);
     expect(note.classList.contains("budget-under")).toBe(true);
     expect(totalRow.contains(note)).toBe(true);
@@ -100,7 +103,7 @@ describe("budget on the shopping page", () => {
 
     await user.click(screen.getAllByRole("button", { name: "I already have it" })[0]);
     const left = totals(promo.filter((l) => l !== firstLine)).pay;
-    expect(screen.getByText(budgetStatus(left, 1000)!.text)).toBeTruthy();
+    expect(screen.getByText(exactly(budgetStatus(left, 1000)!.text))).toBeTruthy();
   });
 
   // RFC-2026-001:AC-13

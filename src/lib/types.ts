@@ -29,6 +29,8 @@ export type Prefs = {
   noShellfish: boolean;
   /** Extra words; any product whose name contains one is never suggested. */
   exclude: string[];
+  /** Most the promotion lines of a week may cost, in euro. Null: no limit. */
+  budget: number | null;
 };
 
 export const DEFAULT_PREFS: Prefs = {
@@ -37,4 +39,5 @@ export const DEFAULT_PREFS: Prefs = {
   noPork: true,
   noShellfish: true,
   exclude: [],
+  budget: null,
 };

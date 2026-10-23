@@ -25,7 +25,7 @@ function asText(plan: Plan, buying: PromoLine[]): string {
 }
 
 export default function ShoppingView() {
-  const { plan, buying, sum, ticked, toggleTick } = usePlan();
+  const { plan, buying, sum, budget, ticked, toggleTick } = usePlan();
   const [notice, setNotice] = useState("");
 
   if (!plan)
@@ -91,7 +91,10 @@ export default function ShoppingView() {
           <dl>
             <div>
               <dt>Offers on the list</dt>
-              <dd>{money(sum.pay)}</dd>
+              <dd>
+                {money(sum.pay)}
+                {budget && <span className={budget.over ? "budget-over" : "budget-under"}>{budget.text}</span>}
+              </dd>
             </div>
             <div>
               <dt>At regular prices</dt>
@@ -106,7 +109,10 @@ export default function ShoppingView() {
               </dd>
             </div>
           </dl>
-          <p className="meta">Items bought at regular price are not in these totals.</p>
+          <p className="meta">
+            Items bought at regular price are not in these totals.
+            {budget && " The budget compares promotion items only."}
+          </p>
         </aside>
 
         <div className="shop-lists">

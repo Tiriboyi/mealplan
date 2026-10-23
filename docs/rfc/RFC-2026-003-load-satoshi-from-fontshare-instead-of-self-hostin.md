@@ -110,3 +110,4 @@ Last verified: 2026-10-23
 | 2026-10-23 | Fortune Tiriboyi | Created draft |
 | 2026-10-23 | Claude (for Fortune Tiriboyi) | Filled in: retroactive record of `acad3e6` plus licence fix (load Satoshi from Fontshare) |
 | 2026-10-23 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |
+| 2026-10-23 | Fortune Tiriboyi | Implemented — see CR-2026-003 |

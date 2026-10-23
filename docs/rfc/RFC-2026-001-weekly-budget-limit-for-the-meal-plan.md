@@ -1,7 +1,7 @@
 ---
 id: RFC-2026-001
 title: Weekly budget limit for the meal plan
-status: approved
+status: draft
 type: change
 requested_by: Fortune Tiriboyi
 decision_owner: Fortune Tiriboyi
@@ -101,7 +101,9 @@ Design decisions (requester, 2026-10-23):
 - "Over budget" uses the existing `--danger` colour. "Under budget" uses `--muted`.
 - Shuffle respects the budget. Manual swaps are not budget-checked and only show the result on the shopping page.
 - Changing the budget replans straight away if the current week no longer fits.
-- When no week fits, the saved plan carries an over-budget flag. While the flag is set and the budget is unchanged, no automatic replanning happens.
+- The saved week remembers the budget it was planned under, plus an over-budget flag when no week fits. While the budget is unchanged, a saved week is never replanned for budget reasons on reload or when deals reload. This covers flagged weeks and weeks edited by hand.
+- (Revision 2026-10-23) The budget total counts promotion items only, so a meal with nothing on promotion adds €0. To stop the planner from "saving" by moving items to regular price, a budget week may never have **more "At regular price" lines** than the no-budget week for the same deals, prefs and seed. A probe showed a week with no promotions totals €0.00 but needs 17 regular-price items.
+- Amounts use the app's existing money format (`money()` in `src/lib/text.ts`, nl-NL, e.g. "€ 4,50"). "€X.XX" in the ticket is a placeholder for that.
 - No budget display on the Week page.
 
 ## Acceptance Criteria
@@ -111,15 +113,16 @@ Design decisions (requester, 2026-10-23):
 - [ ] AC-3: Given the user enters 0, a negative number or non-numeric text, when the field loses focus, then "Enter an amount above €0" is shown, Save is blocked, and the saved budget is unchanged. Clearing the field (empty) is valid and removes the budget.
 - [ ] AC-4: Given a budget is saved, when the page is reloaded, then the budget is still set. Given saved settings from before this change (no `budget`), when they load, then the budget is empty.
 - [ ] AC-5: Given the budget is empty, when a plan is made (initial plan or Shuffle with any seed), then the planned week is identical to the week the current algorithm produces for the same deals, prefs and seed.
-- [ ] AC-6: Given a budget of €60 and a deal set in which at least one valid week has a promotion total of at most €60, when a plan is made (initial or Shuffle), then the planned week's promotion total is at most €60 and the plan is not flagged over budget.
+- [ ] AC-6: Given a budget of €60 and a deal set in which at least one valid week has a promotion total of at most €60 and no more regular-price lines than the no-budget week, when a plan is made (initial or Shuffle), then the planned week's promotion total is at most €60 and the plan is not flagged over budget.
 - [ ] AC-7: Given a budget that no week the planner tries can meet, when a plan is made, then the planned week is the cheapest of the weeks tried (never more expensive than the no-budget week), and the plan is flagged over budget.
-- [ ] AC-8: Given a plan flagged over budget, when the app reloads or the deals/settings effect runs again with the same budget, then the week is not replanned. When the budget changes or Shuffle is pressed, then planning runs again and the flag is recalculated.
+- [ ] AC-8: Given a saved week that is flagged over budget or was edited by hand, when the app reloads or the deals reload with the same budget, then the week is not replanned. When the budget changes or Shuffle is pressed, then planning runs again and the flag is recalculated.
 - [ ] AC-9: Given a saved budget and a current week that is over it, when the user saves a new budget, then the week is replanned right away under AC-6/AC-7.
 - [ ] AC-10: Given a budget is set and the compared total exceeds it, when the shopping page opens, then "Over budget by €X.XX" is shown on the same line as the "Offers on the list" total in the `--danger` colour.
 - [ ] AC-11: Given a budget is set and the compared total is at most the budget, when the shopping page opens, then "€Y.YY under budget" is shown on the same line as the total in the muted style.
 - [ ] AC-12: Given a budget is set, when the shopping page shows the comparison, then it is labelled "promotion items only", and lines marked "I already have it" and regular-price lines are left out of the compared total.
 - [ ] AC-13: Given no budget is set, when the shopping page opens, then no budget text is shown.
 - [ ] AC-14: Given any budget, when a plan is made across seeds and 2/5/7 dinners, then sadza appears at least once and at most twice, and no pork or shellfish deal is used unless allowed in Settings.
+- [ ] AC-15: Given any budget, when a plan is made, then the planned week has no more "At regular price" lines than the week planned without a budget for the same deals, prefs and seed.
 
 ## Out Of Scope
 
@@ -136,8 +139,9 @@ Design decisions (requester, 2026-10-23):
 - **New dev dependencies** (test-only, not shipped): `@testing-library/react`, `@testing-library/dom`, `@testing-library/user-event`, `jsdom`, `@vitejs/plugin-react`. Justification: there is no component test setup, and the UI criteria (AC-1–AC-3, AC-10–AC-13) need automated tests. Testing Library is the de-facto standard for React 19 and stays inside the existing runner (vitest). No second runner is added. All are MIT and actively maintained. Versions are pinned through `package-lock.json`, and `npm audit` must report no high/critical issues before they are used. An ADR records this decision.
 - **`vitest.config.mts`**: add `src/**/*.test.tsx` to `include`, the React plugin, and `environment: "jsdom"` for `.test.tsx` files only (existing `.ts` tests stay on node).
 - **Planner design**: a new `planWeek(index, prefs, seed) → { recipeIds, overBudget }` wraps `suggest`. With no budget it returns `suggest(...)` unchanged (AC-5). With a budget it evaluates a bounded set of candidate weeks: the greedy week, seeded variants, and single-night swaps from `alternatives()`. It returns the best candidate within budget, or else the cheapest. The candidate cap (a few hundred) is fixed in code and covered by a timing check. `suggest` keeps its signature, so its existing callers and tests are not affected.
-- **Plan flag**: `SavedPlan` gains `overBudget?: number | null`, which stores the budget the flag was computed for. The auto-plan effect skips replanning when `fitsWeek` holds and either the week is within budget or `overBudget === prefs.budget`.
-- **Shared helpers** in a new `src/lib/budget.ts`: `parseBudget(text)`, `weekCost(recipeIds, index, prefs)` and `budgetStatus(total, budget)`.
+- **Planner candidates** only count if they have no more regular-price lines than the greedy no-budget week (AC-15). Within that limit, the cheapest promotion total wins.
+- **Saved week**: `SavedPlan` gains `budget?: number | null` (the budget the week was planned under) and `overBudget?: boolean`. A pure `keepOrPlan(week, index, prefs)` in `planner.ts` decides what happens. If the week no longer fits the diet and sadza rules, it replans. If the budget is unchanged, it keeps the week. If the budget changed, it keeps the week when it is within the new budget, and replans otherwise. Saved plans without these fields load as `budget: null`, so behaviour is unchanged.
+- **Shared helpers**: `parseBudget(text)` and `budgetStatus(total, budget)` live in a new `src/lib/budget.ts`. `weekCost(recipeIds, index, prefs)` lives in `planner.ts`, to avoid a circular import with `realize`/`totals`.
 - Resolved with the requester (2026-10-23): €1 step, typed decimals, block Save on invalid input, `--danger`, "Have it" only on the shopping page, regular-price lines out, Shuffle respects the budget, immediate replan, over-budget flag, no Week page change.
 - Open: none.
 
@@ -149,6 +153,8 @@ Design decisions (requester, 2026-10-23):
   - AC-6: fixture deal set where a cheaper valid week exists but the greedy week is over €60. Assert `weekCost ≤ 60` and `overBudget` is false, for the initial seed and Shuffle seeds.
   - AC-7: a €1 budget. Assert `overBudget` is true and `weekCost(result) ≤ weekCost(suggest(...))`.
   - AC-14: a loop over seeds, days and budgets asserting sadza count 1–2 and that `buildIndex` exclusions hold.
+  - AC-15: the same loop asserting `realize(result).regular.length ≤ realize(suggest(...)).regular.length`, including a fixture where the €0-promo week would otherwise win.
+  - AC-8/AC-9: `keepOrPlan` unit tests (unchanged budget keeps a flagged or hand-edited week, a changed budget replans only when over, legacy saved plan).
   - AC-3/AC-2: `parseBudget` for "", "0", "-5", "abc", "60", "59.50", "59,50".
   - AC-10–AC-12: `budgetStatus`.
   - AC-4: settings round-trip with a stubbed `localStorage`, including legacy settings without `budget`.
@@ -167,3 +173,4 @@ Design decisions (requester, 2026-10-23):
 | 2026-10-23 | Fortune Tiriboyi | Created draft |
 | 2026-10-23 | Claude (for Fortune Tiriboyi) | Filled in all sections from the GH#1 analysis and the requester's answers |
 | 2026-10-23 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |
+| 2026-10-23 | Claude (for Fortune Tiriboyi) | Back to draft for scope change. Added AC-15 (no more regular-price lines than the no-budget week) after a probe showed a no-promotion week totals €0. Reworded AC-6 and AC-8 to match. The saved week now records the budget it was planned under, so hand-edited weeks are kept. Money format and helper placement clarified. |

@@ -1,7 +1,7 @@
 ---
 id: RFC-2026-001
 title: Weekly budget limit for the meal plan
-status: draft
+status: approved
 type: change
 requested_by: Fortune Tiriboyi
 decision_owner: Fortune Tiriboyi
@@ -174,3 +174,4 @@ Design decisions (requester, 2026-10-23):
 | 2026-10-23 | Claude (for Fortune Tiriboyi) | Filled in all sections from the GH#1 analysis and the requester's answers |
 | 2026-10-23 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |
 | 2026-10-23 | Claude (for Fortune Tiriboyi) | Back to draft for scope change. Added AC-15 (no more regular-price lines than the no-budget week) after a probe showed a no-promotion week totals €0. Reworded AC-6 and AC-8 to match. The saved week now records the budget it was planned under, so hand-edited weeks are kept. Money format and helper placement clarified. |
+| 2026-10-23 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |

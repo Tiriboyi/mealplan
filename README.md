@@ -8,7 +8,7 @@ Promotion data comes from the [PrijsProfeet API](https://www.prijsprofeet.nl/doc
 
 ## Run it
 
-Requires Node 20 or newer.
+Requires Node 22.13 or newer (for the built-in `node:sqlite`).
 
 ```bash
 npm install
@@ -30,7 +30,7 @@ A key entered in the app takes priority over the server's.
 
 ## How it works
 
-1. `GET /api/deals` downloads the food promotions for the chosen retailers and caches them for three hours.
+1. `GET /api/deals` reads the chosen retailers' food promotions from a local SQLite file, `.cache/prijsprofeet.db`. The first time it sees a retailer it downloads all of that retailer's promotions once. Without a key that takes about a minute, because of the rate limit. After that it asks PrijsProfeet's `/products/changes` feed for what was added, changed or removed, at most every 15 minutes. If PrijsProfeet cannot be reached, it serves the copy it already has. Set `MEALPLAN_DB` to keep the file somewhere else; delete the file to start over.
 2. Each product name is checked against the diet rules (`src/lib/diet.ts`) and matched to cooking ingredients (`src/lib/ingredients.ts`). Matching is on the Dutch product name, because retailer categories are unreliable: shrimp turn up under meat.
 3. The planner (`src/lib/planner.ts`) scores every recipe by how much of it is on promotion and what the main ingredient costs, then picks a varied week. Sadza appears at least once and at most twice.
 4. The shopping list works out how many packs you need for your household and prices them, including "2 voor" and "1+1 gratis" offers. When an offer makes you buy more than the meals use and one pack at shelf price is cheaper, it tells you to buy one and claims no saving.
@@ -44,7 +44,7 @@ Savings are the regular shelf price minus what you pay, for the promotion items 
 - Pork and shellfish rules: `src/lib/diet.ts`
 - Sadza limits and the per-person budget for a main ingredient: constants at the top of `src/lib/planner.ts`
 
-Everything under `src/lib` except `prijsprofeet.ts` is plain TypeScript with no browser or server dependencies, so a mobile app can reuse it.
+Everything under `src/lib` except `prijsprofeet.ts` and `dealStore.ts` is plain TypeScript with no browser or server dependencies, so a mobile app can reuse it.
 
 ## Tests
 

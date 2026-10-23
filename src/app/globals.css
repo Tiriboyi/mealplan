@@ -83,7 +83,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 16px/1.5 var(--font-body), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 16px/1.5 "Satoshi", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -117,28 +117,38 @@ ol {
   list-style: none;
 }
 
+/* Instrument Serif has one weight and runs small, so headings are sized up and never bolded. */
 h1,
+h2,
+h3,
+legend,
 .hero-figure,
-.sheet h2 {
-  font-family: var(--font-display), Georgia, serif;
-  font-weight: 560;
-  letter-spacing: -0.02em;
+.brand-link {
+  font-family: var(--font-display), "Playfair Display", serif;
+  font-weight: 400;
   text-wrap: balance;
 }
 
+/* Tight tracking only above 24px. */
+h1,
+.hero-figure,
+.sheet h2 {
+  letter-spacing: -0.02em;
+}
+
 h1 {
-  font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem);
-  line-height: 1.1;
+  font-size: clamp(2.25rem, 1.6rem + 2.6vw, 3.25rem);
+  line-height: 1.05;
 }
 
 h2 {
-  font-size: 1.15rem;
-  line-height: 1.3;
+  font-size: 1.5rem;
+  line-height: 1.2;
 }
 
 h3 {
-  font-size: 1.05rem;
-  line-height: 1.3;
+  font-size: 1.3rem;
+  line-height: 1.2;
 }
 
 a {
@@ -395,9 +405,7 @@ input::placeholder {
   align-items: center;
   gap: 10px;
   min-height: 44px;
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 1.3rem;
-  font-weight: 600;
+  font-size: 1.6rem;
   letter-spacing: -0.02em;
   text-decoration: none;
 }
@@ -430,6 +438,7 @@ input::placeholder {
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 650;
+  letter-spacing: 0.03em;
   text-decoration: none;
   transition: color var(--fast);
 }
@@ -544,6 +553,7 @@ main {
     border: 1px solid transparent;
     border-radius: 999px;
     font-size: 0.95rem;
+    letter-spacing: normal;
     transition: background-color var(--fast);
   }
 
@@ -580,8 +590,10 @@ main {
     display: none;
   }
 
+  /* Fill the space beside the rail; past 1440px the column centres in what is left. */
   main {
-    margin-left: var(--rail);
+    max-width: 1440px;
+    margin-left: calc(var(--rail) + max(0px, (100vw - var(--rail) - 1440px) / 2));
     padding: 44px 48px 64px 32px;
   }
 }
@@ -938,7 +950,6 @@ main {
   padding: 2px 0;
   border: 0;
   background: none;
-  font-weight: 650;
   text-align: left;
 }
 
@@ -1012,9 +1023,15 @@ main {
   }
 
   .meal.tonight h3 {
-    font-family: var(--font-display), Georgia, serif;
-    font-size: 1.7rem;
+    font-size: 2rem;
+    line-height: 1.1;
     letter-spacing: -0.02em;
+  }
+}
+
+@media (min-width: 1400px) {
+  .meals {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -1080,8 +1097,8 @@ dialog.sheet::backdrop {
 }
 
 .sheet h2 {
-  font-size: 1.7rem;
-  line-height: 1.15;
+  font-size: 2rem;
+  line-height: 1.1;
 }
 
 .sheet h3 {
@@ -1615,8 +1632,8 @@ progress::-moz-progress-bar {
   width: 100%;
   margin-bottom: 12px;
   padding: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.2;
 }
 
 .card legend + * {
@@ -1776,6 +1793,18 @@ progress::-moz-progress-bar {
 
 .save-bar .meta {
   flex: 1 1 140px;
+}
+
+@media (min-width: 1280px) {
+  .settings {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    max-width: 1100px;
+  }
+
+  .save-bar {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Without backdrop blur, glass has to be nearly solid to stay readable. */

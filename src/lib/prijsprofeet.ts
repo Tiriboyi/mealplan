@@ -1,13 +1,16 @@
 import "server-only";
+import { mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { DealStore, type ProductChange } from "./dealStore";
 import { FOOD_CATEGORIES } from "./ingredients";
 import type { PromoStatus } from "./retailers";
 import type { Deal } from "./types";
 
 const BASE = "https://www.prijsprofeet.nl/api/v1";
 const PAGE_SIZE = 100;
-// Promotions are scraped nightly, so a few hours of staleness costs nothing
-// and keeps us well inside PrijsProfeet's rate limits.
-const CACHE_MS = 3 * 60 * 60 * 1000;
+// The changes feed lags the catalogue by about ten minutes, so asking more
+// often than this gains nothing.
+const CHECK_MS = 15 * 60 * 1000;
 
 // PrijsProfeet asks integrations to identify themselves, and blocks keyless
 // requests whose User-Agent contains "bot", "crawler" or "spider".
@@ -29,9 +32,11 @@ type ApiProduct = {
   valid_from: string | null;
   valid_until: string | null;
   product_url: string | null;
+  promotion_status: string | null;
 };
 
-type SearchResponse = { total: number; results: ApiProduct[] };
+type ListResponse = { total: number; products: ApiProduct[] };
+type ChangesResponse = { cursor: number; has_more: boolean; changes: ProductChange<ApiProduct>[] };
 
 export class PrijsProfeetError extends Error {
   constructor(
@@ -64,14 +69,14 @@ function toDeal(p: ApiProduct): Deal {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function getPage(params: Record<string, string>, apiKey: string | undefined): Promise<SearchResponse> {
-  const url = `${BASE}/search?${new URLSearchParams(params)}`;
+async function get<T>(path: string, params: Record<string, string>, apiKey: string | undefined): Promise<T> {
+  const url = `${BASE}${path}?${new URLSearchParams(params)}`;
   const headers: Record<string, string> = { "User-Agent": USER_AGENT, Accept: "application/json" };
   if (apiKey) headers["X-API-Key"] = apiKey;
 
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, { headers, cache: "no-store" });
-    if (res.ok) return (await res.json()) as SearchResponse;
+    if (res.ok) return (await res.json()) as T;
     if (res.status === 429 && attempt < 3) {
       const retryAfter = Number(res.headers.get("retry-after"));
       await sleep(Math.min(retryAfter > 0 ? retryAfter * 1000 : 5000, 30_000));
@@ -85,40 +90,70 @@ async function getPage(params: Record<string, string>, apiKey: string | undefine
   }
 }
 
-async function fetchCategory(retailer: string, status: PromoStatus, category: string, apiKey?: string): Promise<Deal[]> {
-  const deals: Deal[] = [];
+function changesSince(retailer: string, cursor: number | null, apiKey?: string) {
+  const params: Record<string, string> = { retailer, limit: "500" };
+  if (cursor !== null) params.cursor = String(cursor);
+  return get<ChangesResponse>("/products/changes", params, apiKey);
+}
+
+/** Download every current promotion for a retailer, after noting where the changes feed stands. */
+async function fullSync(retailer: string, apiKey?: string) {
+  const { cursor } = await changesSince(retailer, null, apiKey);
+  const products: ApiProduct[] = [];
   for (let page = 1; ; page++) {
-    const data = await getPage(
-      {
-        q: "*",
-        retailer,
-        category,
-        promotion_status: status,
-        sort_by: "product_id:asc",
-        page: String(page),
-        page_size: String(PAGE_SIZE),
-      },
+    const data = await get<ListResponse>(
+      "/products",
+      { retailer, sort_by: "product_id", sort_order: "asc", page: String(page), page_size: String(PAGE_SIZE) },
       apiKey,
     );
-    deals.push(...data.results.map(toDeal));
-    if (data.results.length === 0 || page * PAGE_SIZE >= data.total) return deals;
+    products.push(...data.products);
+    if (data.products.length === 0 || page * PAGE_SIZE >= data.total) break;
+  }
+  store().replaceRetailer(retailer, products, cursor);
+}
+
+async function followChanges(retailer: string, cursor: number, apiKey?: string) {
+  for (;;) {
+    const data = await changesSince(retailer, cursor, apiKey);
+    store().applyChanges(retailer, data.changes, data.cursor);
+    if (!data.has_more) return;
+    cursor = data.cursor;
   }
 }
 
-const cache = new Map<string, { at: number; deals: Promise<Deal[]> }>();
+async function sync(retailer: string, apiKey?: string) {
+  const state = store().syncState(retailer);
+  if (state && Date.now() - state.checkedAt < CHECK_MS) return;
+  if (!state) return fullSync(retailer, apiKey);
+  try {
+    await followChanges(retailer, state.cursor, apiKey);
+  } catch (err) {
+    // The feed keeps 30 days of changes; an older cursor means starting over.
+    if (err instanceof PrijsProfeetError && err.status === 410) return fullSync(retailer, apiKey);
+    // We already hold a copy: serve it rather than fail the page.
+    console.warn(`PrijsProfeet sync for ${retailer} failed; serving the local copy.`, err);
+  }
+}
 
-/** Food promotions for one retailer. Promotions are public data, so the cache is shared across keys. */
-export function fetchDeals(retailer: string, status: PromoStatus, apiKey?: string): Promise<Deal[]> {
-  const key = `${retailer}:${status}`;
-  const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < CACHE_MS) return hit.deals;
+let db: DealStore | undefined;
+function store() {
+  if (!db) {
+    const file = process.env.MEALPLAN_DB || join(process.cwd(), ".cache", "prijsprofeet.db");
+    mkdirSync(dirname(file), { recursive: true });
+    db = new DealStore(file);
+  }
+  return db;
+}
 
-  const deals = (async () => {
-    const all: Deal[] = [];
-    for (const category of FOOD_CATEGORIES) all.push(...(await fetchCategory(retailer, status, category, apiKey)));
-    return all;
-  })();
-  cache.set(key, { at: Date.now(), deals });
-  deals.catch(() => cache.delete(key));
-  return deals;
+const syncing = new Map<string, Promise<void>>();
+
+/** Food promotions for one retailer, from the local copy after bringing it up to date. Promotions are public, so the copy is shared across keys. */
+export async function fetchDeals(retailer: string, status: PromoStatus, apiKey?: string): Promise<Deal[]> {
+  let pending = syncing.get(retailer);
+  if (!pending) {
+    pending = sync(retailer, apiKey).finally(() => syncing.delete(retailer));
+    syncing.set(retailer, pending);
+  }
+  await pending;
+  return store().products<ApiProduct>(retailer, status, FOOD_CATEGORIES).map(toDeal);
 }

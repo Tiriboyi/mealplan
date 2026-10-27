@@ -102,21 +102,21 @@ On the week view, every day shows its planned dinner and, underneath, up to two 
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Given a planned week whose shopping list covers at least one unplanned recipe, when the week view renders, then every day card shows its planned dinner and at least one "Or make:" option.
-- [ ] AC-2: Given options are computed for a week, when any option is inspected, then every non-pantry ingredient of that recipe appears in the plan's promotion lines or regular-price lines.
-- [ ] AC-3: Given options are computed for a week, when any option is inspected, then it is not one of the week's planned dinners.
-- [ ] AC-4: Given an offer is marked "I already have it" (skipped) on the shopping page, when options are computed, then no option needs that ingredient unless it is also on another line of the list.
-- [ ] AC-5: Given options are shown, when the shopping list and totals are computed, then `realize()` output and the shopping total are identical to the same week without options (no new items, no changed quantities, no extra cost).
-- [ ] AC-6: Given Settings with no pork, no shellfish or exclude words, when options are computed, then every option's name and ingredient names pass `allowed()` for those settings.
-- [ ] AC-7: Given several recipes qualify for a day, when options are computed, then that day lists at most 2, ranked by the number of ingredients they share with that day's planned dinner (ties broken in a fixed order).
-- [ ] AC-8: Given a recipe qualifies, when options are computed, then it may be listed on more than one day.
-- [ ] AC-9: Given the planned week already has the maximum number of sadza dinners, when options are computed, then sadza recipes can still be options, and the planned week's sadza count and `fitsWeek` result are unchanged.
-- [ ] AC-10: Given no unplanned recipe can be made from the week's shopping list, when the week view renders, then every day shows "No alternative dinner possible with this week's shopping" in the inline muted style and no "Or make:" list.
-- [ ] AC-11: Given an "Or make:" option, when the user taps it, then the recipe sheet opens with its ingredients and method, and each ingredient is tagged by its shopping-list status (on offer at its retailer and price, regular price, or cupboard).
-- [ ] AC-12: Given the recipe sheet of an option opened from a day, when the user picks it, then it replaces that day's planned dinner, the shopping list and total are rebuilt from the new week, and the sheet shows "Updates your shopping list" before picking.
-- [ ] AC-13: Given the user swaps or picks a dinner, or plans a new week, when the week view updates, then every day's options are recalculated from the new shopping list.
-- [ ] AC-14: Given a weekly budget is set, when the week is planned, then `planWeek`'s `recipeIds` and `overBudget` and `weekCost` are identical to the same inputs without this feature.
-- [ ] AC-15: Given the existing swap flow, when the swap sheet or the "Cook it instead on" footer of a recipe opened from the recipes page is used, then its options are unchanged (`alternatives()` behaves as before).
+- [x] AC-1: Given a planned week whose shopping list covers at least one unplanned recipe, when the week view renders, then every day card shows its planned dinner and at least one "Or make:" option.
+- [x] AC-2: Given options are computed for a week, when any option is inspected, then every non-pantry ingredient of that recipe appears in the plan's promotion lines or regular-price lines.
+- [x] AC-3: Given options are computed for a week, when any option is inspected, then it is not one of the week's planned dinners.
+- [x] AC-4: Given an offer is marked "I already have it" (skipped) on the shopping page, when options are computed, then no option needs that ingredient unless it is also on another line of the list.
+- [x] AC-5: Given options are shown, when the shopping list and totals are computed, then `realize()` output and the shopping total are identical to the same week without options (no new items, no changed quantities, no extra cost).
+- [x] AC-6: Given Settings with no pork, no shellfish or exclude words, when options are computed, then every option's name and ingredient names pass `allowed()` for those settings.
+- [x] AC-7: Given several recipes qualify for a day, when options are computed, then that day lists at most 2, ranked by the number of ingredients they share with that day's planned dinner (ties broken in a fixed order).
+- [x] AC-8: Given a recipe qualifies, when options are computed, then it may be listed on more than one day.
+- [x] AC-9: Given the planned week already has the maximum number of sadza dinners, when options are computed, then sadza recipes can still be options, and the planned week's sadza count and `fitsWeek` result are unchanged.
+- [x] AC-10: Given no unplanned recipe can be made from the week's shopping list, when the week view renders, then every day shows "No alternative dinner possible with this week's shopping" in the inline muted style and no "Or make:" list.
+- [x] AC-11: Given an "Or make:" option, when the user taps it, then the recipe sheet opens with its ingredients and method, and each ingredient is tagged by its shopping-list status (on offer at its retailer and price, regular price, or cupboard).
+- [x] AC-12: Given the recipe sheet of an option opened from a day, when the user picks it, then it replaces that day's planned dinner, the shopping list and total are rebuilt from the new week, and the sheet shows "Updates your shopping list" before picking.
+- [x] AC-13: Given the user swaps or picks a dinner, or plans a new week, when the week view updates, then every day's options are recalculated from the new shopping list.
+- [x] AC-14: Given a weekly budget is set, when the week is planned, then `planWeek`'s `recipeIds` and `overBudget` and `weekCost` are identical to the same inputs without this feature.
+- [x] AC-15: Given the existing swap flow, when the swap sheet or the "Cook it instead on" footer of a recipe opened from the recipes page is used, then its options are unchanged (`alternatives()` behaves as before).
 
 ## Out Of Scope
 
@@ -152,3 +152,4 @@ On the week view, every day shows its planned dinner and, underneath, up to two 
 | 2026-10-27 | Fortune Tiriboyi | Created draft |
 | 2026-10-27 | Claude (agent) | Filled in all sections from the GH#6 analysis and the requester's answers |
 | 2026-10-27 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |
+| 2026-10-27 | Fortune Tiriboyi | Implemented — see CR-2026-005 |

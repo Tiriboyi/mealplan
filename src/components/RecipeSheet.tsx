@@ -10,13 +10,15 @@ import { duration, money } from "@/lib/text";
 import { usePlan } from "./PlanProvider";
 import { dayAt, PROTEIN_LABEL, RecipeArt, Sheet } from "./ui";
 
-export default function RecipeSheet({ recipeId }: { recipeId: string }) {
-  const { settings, index, plan, recipeIds, replace, openSwap, closeSheet } = usePlan();
+export default function RecipeSheet({ recipeId, day }: { recipeId: string; day?: number }) {
+  const { settings, index, plan, options, recipeIds, replace, openSwap, closeSheet } = usePlan();
   const recipe = RECIPE[recipeId];
   if (!recipe) return null;
 
   const photo = PHOTOS[recipeId];
   const planned = recipeIds.indexOf(recipeId);
+  // The day it was opened for from the "Or make:" list, while the shopping list still makes it.
+  const optionDay = day !== undefined && options[day]?.includes(recipeId) ? day : null;
   // Days this recipe could take over without repeating a dinner or breaking the sadza rule.
   const free =
     planned < 0 && settings && index
@@ -25,9 +27,9 @@ export default function RecipeSheet({ recipeId }: { recipeId: string }) {
 
   const ingredients = [recipe.main, ...recipe.with].map((id) => {
     const ingredient = INGREDIENT[id];
-    // For a planned dinner the shopping list has the final say on whether the offer is worth using.
+    // For a planned dinner or an option the shopping list has the final say on whether the offer is worth using.
     const deal =
-      planned >= 0 && plan
+      (planned >= 0 || optionDay !== null) && plan
         ? plan.promo.find((l) => l.ingredient.id === id)?.deal
         : !ingredient.pantry
           ? index?.get(id)?.[0]
@@ -46,6 +48,20 @@ export default function RecipeSheet({ recipeId }: { recipeId: string }) {
             <button className="button" onClick={() => openSwap(planned)}>
               <ArrowLeftRight aria-hidden="true" />
               Swap
+            </button>
+          </>
+        ) : optionDay !== null ? (
+          <>
+            <span className="meta">For {dayAt(optionDay).long.toLowerCase()} · Updates your shopping list</span>
+            <button
+              className="button"
+              onClick={() => {
+                replace(optionDay, recipeId);
+                closeSheet();
+              }}
+            >
+              <ArrowLeftRight aria-hidden="true" />
+              Cook it instead
             </button>
           </>
         ) : free.length > 0 ? (

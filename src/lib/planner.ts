@@ -194,6 +194,32 @@ export function realize(recipeIds: string[], index: DealIndex, prefs: Prefs): Pl
   return { meals, promo, regular, pantry };
 }
 
+
+/**
+ * Unplanned dinners each day could cook instead, using only what the shopping list already buys.
+ * Offers marked "I already have it" are not bought, so they do not count. Never changes the list.
+ */
+export function dinnerOptions(plan: Plan, recipeIds: string[], skipped: string[], prefs: Prefs, max = 2): string[][] {
+  const bought = new Set([
+    ...plan.promo.filter((l) => !skipped.includes(l.deal.id)).map((l) => l.ingredient.id),
+    ...plan.regular.map((l) => l.ingredient.id),
+  ]);
+  const needs = (r: Recipe) => [r.main, ...r.with].filter((id) => !INGREDIENT[id].pantry);
+  const makeable = RECIPES.filter(
+    (r) =>
+      !recipeIds.includes(r.id) &&
+      needs(r).every((id) => bought.has(id)) &&
+      allowed(r.name, prefs) &&
+      [r.main, ...r.with].every((id) => allowed(INGREDIENT[id].name, prefs)),
+  );
+  return recipeIds.map((id) => {
+    const planned = new Set(needs(RECIPE[id]));
+    const shared = (r: Recipe) => needs(r).filter((i) => planned.has(i)).length;
+    // Array.sort is stable, so equal overlap keeps recipe order.
+    return [...makeable].sort((a, b) => shared(b) - shared(a)).slice(0, max).map((r) => r.id);
+  });
+}
+
 export type Totals = { pay: number; normal: number; saving: number; percent: number };
 
 export function totals(lines: Purchase[]): Totals {

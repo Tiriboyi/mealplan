@@ -966,6 +966,28 @@ main {
   z-index: 1;
 }
 
+.meal-body > .meal-options {
+  margin-top: 8px;
+}
+
+/* Like the swap button, the options sit above the card's recipe hit area. */
+.meal-option {
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.meal-option:hover {
+  color: var(--accent);
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;

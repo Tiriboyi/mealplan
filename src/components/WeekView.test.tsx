@@ -46,7 +46,9 @@ beforeEach(() => {
     vi.fn(async () => new Response(JSON.stringify({ deals, usingKey: false }))),
   );
   // jsdom has no modal dialogs.
-  HTMLDialogElement.prototype.showModal = vi.fn();
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true;
+  };
   HTMLDialogElement.prototype.close = vi.fn();
 });
 

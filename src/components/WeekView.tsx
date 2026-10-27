@@ -3,6 +3,7 @@
 import { ArrowLeftRight, ArrowRight, Clock, Shuffle, Tag, Users } from "lucide-react";
 import Link from "next/link";
 import { totals, type Meal } from "@/lib/planner";
+import { RECIPE } from "@/lib/recipes";
 import { RETAILERS } from "@/lib/retailers";
 import { duration, money } from "@/lib/text";
 import { usePlan } from "./PlanProvider";
@@ -96,7 +97,8 @@ export default function WeekView() {
 }
 
 function MealCard({ meal, position }: { meal: Meal; position: number }) {
-  const { plan, openRecipe, openSwap } = usePlan();
+  const { plan, options, openRecipe, openSwap } = usePlan();
+  const others = options[position] ?? [];
   const { recipe, items } = meal;
   const day = dayAt(position);
   // Only what the shopping list actually buys on promotion, not every ingredient with an offer.
@@ -130,6 +132,21 @@ function MealCard({ meal, position }: { meal: Meal; position: number }) {
           </ul>
         ) : (
           <p className="meta">Nothing for this dinner is on offer.</p>
+        )}
+        {others.length > 0 ? (
+          <p className="meta meal-options">
+            Or make:{" "}
+            {others.map((id, i) => (
+              <span key={id}>
+                {i > 0 && ", "}
+                <button className="meal-option" onClick={() => openRecipe(id, position)}>
+                  {RECIPE[id].name}
+                </button>
+              </span>
+            ))}
+          </p>
+        ) : (
+          <p className="meta meal-options">No alternative dinner possible with this week&apos;s shopping</p>
         )}
       </div>
       <button className="icon-button meal-swap" onClick={() => openSwap(position)} aria-label={`Swap ${recipe.name}`}>

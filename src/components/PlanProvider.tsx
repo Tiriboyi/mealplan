@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { budgetStatus, type BudgetStatus } from "@/lib/budget";
-import { buildIndex, keepOrPlan, planWeek, realize, totals, type DealIndex, type Plan, type PromoLine, type Totals, type Week } from "@/lib/planner";
+import { buildIndex, dinnerOptions, keepOrPlan, planWeek, realize, totals, type DealIndex, type Plan, type PromoLine, type Totals, type Week } from "@/lib/planner";
 import { loadSettings, saveSettings, type Settings } from "@/lib/settings";
 import type { Deal } from "@/lib/types";
 import RecipeSheet from "./RecipeSheet";
@@ -15,7 +15,8 @@ type Load =
 
 type SavedPlan = Week & { skipped: string[]; ticked: string[] };
 
-type Sheet = { kind: "recipe"; id: string } | { kind: "swap"; position: number } | null;
+/** `day` is set when a recipe is opened as one of that day's options. */
+type Sheet = { kind: "recipe"; id: string; day?: number } | { kind: "swap"; position: number } | null;
 
 type PlanContext = {
   /** Null until the browser's saved settings have been read. */
@@ -24,6 +25,8 @@ type PlanContext = {
   index: DealIndex | null;
   recipeIds: string[];
   plan: Plan | null;
+  /** Per day, other dinners the shopping list already makes. */
+  options: string[][];
   skipped: string[];
   ticked: string[];
   /** Promotion lines still on the list, and what they add up to. */
@@ -39,7 +42,7 @@ type PlanContext = {
   toggleTick: (id: string) => void;
   applySettings: (next: Settings) => void;
   retry: () => void;
-  openRecipe: (id: string) => void;
+  openRecipe: (id: string, day?: number) => void;
   openSwap: (position: number) => void;
   closeSheet: () => void;
 };
@@ -139,6 +142,10 @@ export default function PlanProvider({ children }: { children: React.ReactNode }
 
   const buying = useMemo(() => plan?.promo.filter((l) => !skipped.includes(l.deal.id)) ?? [], [plan, skipped]);
   const sum = useMemo(() => totals(buying), [buying]);
+  const options = useMemo(
+    () => (plan && prefs ? dinnerOptions(plan, recipeIds, skipped, prefs) : []),
+    [plan, recipeIds, skipped, prefs],
+  );
   const budget = budgetStatus(sum.pay, prefs?.budget ?? null);
 
   function shuffle() {
@@ -155,6 +162,7 @@ export default function PlanProvider({ children }: { children: React.ReactNode }
     index,
     recipeIds,
     plan,
+    options,
     skipped,
     ticked,
     buying,
@@ -171,7 +179,7 @@ export default function PlanProvider({ children }: { children: React.ReactNode }
       setSettings(next);
     },
     retry: () => setAttempt(attempt + 1),
-    openRecipe: (id) => setSheet({ kind: "recipe", id }),
+    openRecipe: (id, day) => setSheet({ kind: "recipe", id, day }),
     openSwap: (position) => setSheet({ kind: "swap", position }),
     closeSheet: () => setSheet(null),
   };
@@ -179,7 +187,7 @@ export default function PlanProvider({ children }: { children: React.ReactNode }
   return (
     <Context.Provider value={value}>
       {children}
-      {sheet?.kind === "recipe" && <RecipeSheet key={sheet.id} recipeId={sheet.id} />}
+      {sheet?.kind === "recipe" && <RecipeSheet key={sheet.id} recipeId={sheet.id} day={sheet.day} />}
       {sheet?.kind === "swap" && <SwapSheet position={sheet.position} />}
     </Context.Provider>
   );

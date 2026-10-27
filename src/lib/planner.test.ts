@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { allowed, isPork, isShellfish } from "./diet";
-import { ingredientsFor } from "./ingredients";
-import { alternatives, buildIndex, fitsWeek, keepOrPlan, planWeek, realize, suggest, totals, weekCost } from "./planner";
+import { INGREDIENT, ingredientsFor } from "./ingredients";
+import { alternatives, buildIndex, dinnerOptions, fitsWeek, keepOrPlan, planWeek, realize, suggest, totals, weekCost } from "./planner";
 import { packGrams, purchase } from "./pricing";
 import { RECIPE, RECIPES } from "./recipes";
 import { DEFAULT_PREFS, type Deal } from "./types";
@@ -382,5 +382,118 @@ describe("planning", () => {
         expect(keepOrPlan({ recipeIds: tooMuch, budget: 1, overBudget: true }, index, prefs)).toEqual(planWeek(index, prefs));
       });
     });
+  });
+});
+
+describe("dinner options", () => {
+  const deals = [
+    deal("PLUS Boerentrots Kippenbout 2st", "vlees", { price: 3.99, originalPrice: 4.99, quantity: "800 g", retailer: "plus" }),
+    deal("Plus Boerenkool fijngesneden", "groente-fruit", { price: 1, originalPrice: 2.49, quantity: "500 g" }),
+    deal("Heinz Tomaten gepeld", "soepen-conserven-sauzen", { price: 1, originalPrice: 1.39 }),
+  ];
+  const index = buildIndex(deals, DEFAULT_PREFS);
+  const prefsFor = (ids: string[]) => ({ ...DEFAULT_PREFS, days: ids.length });
+
+  // Its list also makes sadza-chicken-stew, beef-cabbage and mince-greens, and nothing else.
+  const week = ["sadza-beef-stew", "rice-chicken-stew", "macaroni-mince"];
+  const prefs = prefsFor(week);
+  const plan = realize(week, index, prefs);
+  const options = dinnerOptions(plan, week, [], prefs);
+
+  const onList = (p: typeof plan) => new Set([...p.promo, ...p.regular].map((l) => l.ingredient.id));
+  const needs = (id: string) => [RECIPE[id].main, ...RECIPE[id].with].filter((i) => !INGREDIENT[i].pantry);
+
+  test("gives one list of options per day", () => {
+    expect(options).toHaveLength(week.length);
+  });
+
+  // RFC-2026-005:AC-2
+  test("every option is cooked from what the list already buys, plus the cupboard", () => {
+    const bought = onList(plan);
+    for (const id of options.flat()) for (const i of needs(id)) expect(bought).toContain(i);
+    expect(new Set(options.flat())).toEqual(new Set(["sadza-chicken-stew", "beef-cabbage", "mince-greens"]));
+  });
+
+  // RFC-2026-005:AC-3
+  test("a dinner already planned is never an option", () => {
+    expect(options.flat().some((id) => week.includes(id))).toBe(false);
+  });
+
+  // RFC-2026-005:AC-4
+  test("an offer marked 'I already have it' does not count as bought", () => {
+    const chicken = plan.promo.find((l) => l.ingredient.id === "chicken_pieces");
+    expect(chicken).toBeDefined();
+    const skipped = dinnerOptions(plan, week, [chicken!.deal.id], prefs).flat();
+    expect(skipped).not.toContain("sadza-chicken-stew");
+    expect(skipped).toContain("mince-greens");
+  });
+
+  // RFC-2026-005:AC-5
+  test("working out the options leaves the shopping list and its total exactly as they were", () => {
+    const before = structuredClone(plan);
+    dinnerOptions(plan, week, [], prefs);
+    expect(plan).toEqual(before);
+    expect(realize(week, index, prefs)).toEqual(before);
+    expect(totals(plan.promo)).toEqual(totals(before.promo));
+  });
+
+  // RFC-2026-005:AC-6
+  test("options respect the diet settings, including excluded words", () => {
+    const strict = { ...prefs, exclude: ["mince"] };
+    const picked = dinnerOptions(plan, week, [], strict).flat();
+    expect(picked).not.toContain("mince-greens");
+    expect(picked).toContain("sadza-chicken-stew");
+    for (const id of picked) {
+      expect(allowed(RECIPE[id].name, strict)).toBe(true);
+      for (const i of [RECIPE[id].main, ...RECIPE[id].with]) expect(allowed(INGREDIENT[i].name, strict)).toBe(true);
+    }
+  });
+
+  // RFC-2026-005:AC-7
+  test("each day lists at most two, sharing the most with that day's dinner first", () => {
+    for (const day of options) expect(day.length).toBeLessThanOrEqual(2);
+    // Macaroni and mince shares mince, tomatoes and onions with mince-greens, only two with the others.
+    expect(options[2]).toEqual(["mince-greens", "sadza-chicken-stew"]);
+    // Equal overlap keeps recipe order.
+    expect(options[0]).toEqual(["sadza-chicken-stew", "beef-cabbage"]);
+    expect(options[1]).toEqual(["sadza-chicken-stew", "beef-cabbage"]);
+  });
+
+  // RFC-2026-005:AC-8
+  test("the same dinner may be offered on more than one day", () => {
+    expect(options.filter((day) => day.includes("sadza-chicken-stew")).length).toBeGreaterThan(1);
+  });
+
+  // RFC-2026-005:AC-9
+  test("options ignore the sadza limit and leave the planned week's sadza as it is", () => {
+    const twoSadza = ["sadza-beef-stew", "mince-greens", "rice-chicken-stew"];
+    const p = prefsFor(twoSadza);
+    expect(fitsWeek(twoSadza, p)).toBe(true);
+    const offered = dinnerOptions(realize(twoSadza, index, p), twoSadza, [], p).flat();
+    expect(offered.some((id) => RECIPE[id].base === "sadza")).toBe(true);
+    expect(fitsWeek(twoSadza, p)).toBe(true);
+  });
+
+  // RFC-2026-005:AC-10
+  test("a list that makes nothing else gives every day an empty list", () => {
+    const narrow = ["oxtail", "macaroni-mince"];
+    const p = prefsFor(narrow);
+    expect(dinnerOptions(realize(narrow, index, p), narrow, [], p)).toEqual([[], []]);
+  });
+
+  // RFC-2026-005:AC-14
+  test("the budget planner gives the same week and cost with options worked out", () => {
+    const budgeted = { ...DEFAULT_PREFS, budget: 10 };
+    const before = planWeek(index, budgeted, 3);
+    dinnerOptions(realize(before.recipeIds, index, budgeted), before.recipeIds, [], budgeted);
+    expect(planWeek(index, budgeted, 3)).toEqual(before);
+    expect(weekCost(before.recipeIds, index, budgeted)).toBe(weekCost(planWeek(index, budgeted, 3).recipeIds, index, budgeted));
+  });
+
+  // RFC-2026-005:AC-15
+  test("the swap list still offers dinners the shopping list cannot make", () => {
+    const swaps = alternatives(week, 0, index, prefs);
+    const notMakeable = swaps.filter((id) => !options.flat().includes(id));
+    expect(notMakeable.length).toBeGreaterThan(0);
   });
 });

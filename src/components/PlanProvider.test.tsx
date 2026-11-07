@@ -2,7 +2,8 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { alternatives, buildIndex, planWeek, suggest, weekCost } from "@/lib/planner";
+import { LUNCH } from "@/lib/lunches";
+import { alternatives, buildIndex, planLunches, planWeek, suggest, weekCost, type Lunches } from "@/lib/planner";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { DEFAULT_PREFS, type Deal } from "@/lib/types";
 import PlanProvider, { usePlan } from "./PlanProvider";
@@ -138,5 +139,85 @@ describe("replanning with a budget", () => {
     await user.click(screen.getByRole("button", { name: "Budget 1000" }));
     expect(shownWeek()).toEqual(handEdited);
     expect(shownFlag()).toBe("false");
+  });
+});
+
+describe("replanning lunches", () => {
+  const MONDAY = "2026-11-09";
+  const family = { ...DEFAULT_PREFS, adults: 2, kids: 2, days: 7 };
+  const lunchDeals = [
+    ...deals,
+    deal("AH Tijger volkoren heel", "brood-bakkerij", { price: 2.29, originalPrice: 2.89, quantity: "800 g", retailer: "albert_heijn" }),
+    deal("MILBONA Plakken Goudse jong belegen kaas", "kaas", { price: 2.49, originalPrice: 3.29, quantity: "190 g", retailer: "lidl" }),
+    deal("Elstar appels", "groente-fruit", { price: 1.99, originalPrice: 2.79, quantity: "1 kg" }),
+    deal("Conference peren", "groente-fruit", { price: 1.79, originalPrice: 2.49, quantity: "1 kg" }),
+    deal("Biologische komkommer", "groente-fruit", { price: 0.99, originalPrice: 1.29, quantity: "1 stuk" }),
+  ];
+  const idx = buildIndex(lunchDeals, family);
+  const lunches = planLunches(MONDAY, idx, family);
+
+  function LunchProbe() {
+    const { plan, lunches, settings, applySettings } = usePlan();
+    const set = (prefs: Partial<typeof family>, retailers?: string[]) =>
+      applySettings({ ...settings!, retailers: retailers ?? settings!.retailers, prefs: { ...settings!.prefs, ...prefs } });
+    return (
+      <>
+        {plan && <p>ready</p>}
+        <output aria-label="lunches">{JSON.stringify(lunches)}</output>
+        <button onClick={() => set({ kids: 0 })}>No kids</button>
+        <button onClick={() => set({}, ["jumbo"])}>Only Jumbo</button>
+      </>
+    );
+  }
+
+  const shownLunches = () => JSON.parse(screen.getByRole("status", { name: "lunches" }).textContent!) as Lunches;
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 10, 9, 10, 0));
+    // Only the AH bread is lost when the shopper drops Albert Heijn.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const only = new URL(url, "http://localhost").searchParams.get("retailers")!.split(",");
+        return new Response(JSON.stringify({ deals: lunchDeals.filter((d) => only.includes(d.retailer) || d.retailer === "lidl"), usingKey: false }));
+      }),
+    );
+    localStorage.setItem("mealplan.settings", JSON.stringify({ ...DEFAULT_SETTINGS, retailers: ["albert_heijn", "jumbo", "plus"], prefs: family }));
+    localStorage.setItem(
+      "mealplan.plan",
+      JSON.stringify({ recipeIds: suggest(idx, family), start: MONDAY, lunches, skipped: [], ticked: [], budget: null, overBudget: false }),
+    );
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  async function openProbe() {
+    render(
+      <PlanProvider>
+        <LunchProbe />
+      </PlanProvider>,
+    );
+    await screen.findByText("ready");
+    return userEvent.setup();
+  }
+
+  // RFC-2026-006:AC-33
+  test("changing the number of kids replans the lunch slots", async () => {
+    const user = await openProbe();
+    expect(shownLunches()).toEqual(lunches);
+    await user.click(screen.getByRole("button", { name: "No kids" }));
+    await vi.waitFor(() => expect(Object.keys(shownLunches()).some((k) => /lunchbox|snack/.test(k))).toBe(false));
+    expect(shownLunches()["0-adult"]).toBeDefined();
+  });
+
+  // RFC-2026-006:AC-12
+  test("dropping a supermarket replaces lunches whose promotion was there", async () => {
+    const user = await openProbe();
+    expect(lunches["0-lunchbox"]).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: "Only Jumbo" }));
+    // Without Albert Heijn there is no bread on promotion, so no sandwich can stay.
+    await vi.waitFor(() => expect(shownLunches()["0-lunchbox"]).toBeNull());
+    for (const id of Object.values(shownLunches())) if (id) expect(LUNCH[id].amounts).not.toHaveProperty("wholegrain_bread");
   });
 });

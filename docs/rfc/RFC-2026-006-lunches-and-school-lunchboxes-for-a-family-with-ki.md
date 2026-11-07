@@ -146,65 +146,65 @@ Lunchboxes follow the school guidance and mix Dutch and Zimbabwean food. Every l
 
 Household
 
-- [ ] AC-1: Given Settings, when the user opens them, then they can set **Adults** (1–10, default 2) and **Kids** (0–6, default 0) instead of "People at the table", and the week view summary shows both (for example "2 adults, 2 kids").
-- [ ] AC-2: Given settings saved before this change with `people: n`, when they load, then they become `adults: n, kids: 0` and nothing else changes.
-- [ ] AC-3: Given a household of A adults and K kids, when quantities are worked out for a meal for the whole family (dinner or family lunch), then they use A + 0.6 × K portions. Given K = 0, the dinners, shopping list and `weekCost` are identical to today's output for `people: A`.
+- [x] AC-1: Given Settings, when the user opens them, then they can set **Adults** (1–10, default 2) and **Kids** (0–6, default 0) instead of "People at the table", and the week view summary shows both (for example "2 adults, 2 kids").
+- [x] AC-2: Given settings saved before this change with `people: n`, when they load, then they become `adults: n, kids: 0` and nothing else changes.
+- [x] AC-3: Given a household of A adults and K kids, when quantities are worked out for a meal for the whole family (dinner or family lunch), then they use A + 0.6 × K portions. Given K = 0, the dinners, shopping list and `weekCost` are identical to today's output for `people: A`.
 
 Days and the school calendar
 
-- [ ] AC-4: Given the user plans a new week, when the plan is saved, then it stores the date of its first day (today). Given the plan is reopened on a later date, then every day keeps its date and weekday, and "Today" and "Tomorrow" label only the days that really are today and tomorrow.
-- [ ] AC-5: Given a plan saved before this change (no start date), when it loads, then its first day is taken as the day it is loaded, that date is saved, and its dinners are kept.
-- [ ] AC-6: Given a date, when the app decides whether it is a school day, then it is a school day only if it is Monday to Friday and not inside a school holiday for region middle (province of Utrecht) for school years 2026–2027 and 2027–2028, as published by the Rijksoverheid.
-- [ ] AC-7: Given a date after the last school year in the calendar, when the app decides whether it is a school day, then it treats Monday to Friday as school days and the Settings page shows "School holidays known until" followed by the last date in the calendar, so the gap is visible.
+- [x] AC-4: Given the user plans a new week, when the plan is saved, then it stores the date of its first day (today). Given the plan is reopened on a later date, then every day keeps its date and weekday, and "Today" and "Tomorrow" label only the days that really are today and tomorrow.
+- [x] AC-5: Given a plan saved before this change (no start date), when it loads, then its first day is taken as the day it is loaded, that date is saved, and its dinners are kept.
+- [x] AC-6: Given a date, when the app decides whether it is a school day, then it is a school day only if it is Monday to Friday and not inside a school holiday for region middle (province of Utrecht) for school years 2026–2027 and 2027–2028, as published by the Rijksoverheid.
+- [x] AC-7: Given a date after the last school year in the calendar, when the app decides whether it is a school day, then it treats Monday to Friday as school days and the Settings page shows "School holidays known until" followed by the last date in the calendar, so the gap is visible.
 
 Which meals on which day
 
-- [ ] AC-8: Given K ≥ 1 and a planned day that is a school day on Monday, Tuesday, Thursday or Friday, when the week view renders, then that day shows a kids' lunchbox with a morning snack and a 12:30 lunch, an adult lunch, and the dinner.
-- [ ] AC-9: Given K ≥ 1 and a planned day that is a school day on Wednesday, when the week view renders, then it shows a kids' morning snack, a family lunch for everyone, and the dinner, and no 12:30 lunchbox.
-- [ ] AC-10: Given a planned day that is Saturday, Sunday or inside a school holiday, or any day when K = 0, when the week view renders, then it shows a family lunch for everyone and the dinner, and no lunchbox or snack. Given K = 0 on a weekday, it shows an adult lunch.
+- [x] AC-8: Given K ≥ 1 and a planned day that is a school day on Monday, Tuesday, Thursday or Friday, when the week view renders, then that day shows a kids' lunchbox with a morning snack and a 12:30 lunch, an adult lunch, and the dinner.
+- [x] AC-9: Given K ≥ 1 and a planned day that is a school day on Wednesday, when the week view renders, then it shows a kids' morning snack, a family lunch for everyone, and the dinner, and no 12:30 lunchbox.
+- [x] AC-10: Given a planned day that is Saturday, Sunday or inside a school holiday, or any day when K = 0, when the week view renders, then it shows a family lunch for everyone and the dinner, and no lunchbox or snack. Given K = 0 on a weekday, it shows an adult lunch.
 
 On promotion at the selected supermarkets
 
-- [ ] AC-11: Given this week's promotions at the selected retailers (the deal index), when lunches are planned or offered as swaps, then only lunches, snacks and lunchboxes whose every non-cupboard ingredient has a promotion in the deal index are used. No lunch item ever needs an ingredient with no promotion.
-- [ ] AC-12: Given the selected retailers or the promotion status (active or upcoming) change, when the plan is rebuilt, then lunches are re-planned against the new promotions and any that no longer qualify are replaced.
-- [ ] AC-13: Given a lunch, snack or lunchbox, when its cupboard ingredients are inspected, then they are only existing cupboard staples (oil, salt and pepper, stock) or tap water. No new cupboard items are added to let a lunch qualify.
-- [ ] AC-14: Given too few lunches qualify to fill the week without repeats (AC-19), when lunches are planned, then repeats are allowed rather than leaving a slot empty. Given no lunch of a kind qualifies for a slot at all, then the slot shows "No lunch idea on promotion at your supermarkets this week" instead of a suggestion.
-- [ ] AC-15: Given any lunch, snack or lunchbox, when it is inspected, then no ingredient is a toko-only or specialty product (for example maize meal or dried *matemba*). Zimbabwean dishes are made with their supermarket equivalents, such as *dovi* as peanut butter (*pindakaas*), *mbambaira* as sweet potato (*zoete aardappel*), and *maputi* as plain unsalted popcorn.
+- [x] AC-11: Given this week's promotions at the selected retailers (the deal index), when lunches are planned or offered as swaps, then only lunches, snacks and lunchboxes whose every non-cupboard ingredient has a promotion in the deal index are used. No lunch item ever needs an ingredient with no promotion.
+- [x] AC-12: Given the selected retailers or the promotion status (active or upcoming) change, when the plan is rebuilt, then lunches are re-planned against the new promotions and any that no longer qualify are replaced.
+- [x] AC-13: Given a lunch, snack or lunchbox, when its cupboard ingredients are inspected, then they are only existing cupboard staples (oil, salt and pepper, stock) or tap water. No new cupboard items are added to let a lunch qualify.
+- [x] AC-14: Given too few lunches qualify to fill the week without repeats (AC-19), when lunches are planned, then repeats are allowed rather than leaving a slot empty. Given no lunch of a kind qualifies for a slot at all, then the slot shows "No lunch idea on promotion at your supermarkets this week" instead of a suggestion.
+- [x] AC-15: Given any lunch, snack or lunchbox, when it is inspected, then no ingredient is a toko-only or specialty product (for example maize meal or dried *matemba*). Zimbabwean dishes are made with their supermarket equivalents, such as *dovi* as peanut butter (*pindakaas*), *mbambaira* as sweet potato (*zoete aardappel*), and *maputi* as plain unsalted popcorn.
 
 Lunchbox content (school guidance)
 
-- [ ] AC-16: Given any planned morning snack, when it is inspected, then it is a single portion of fruit or vegetables from the winter list (for example apple, pear, mandarin or clementine, carrot sticks, cucumber, small tomatoes) and contains no sweets, biscuits, crisps or juice.
-- [ ] AC-17: Given any planned kids' 12:30 lunch, when it is inspected, then it has a wholegrain base (wholegrain bread or crackers, or a cold alternative such as boiled sweet potato), a topping or protein, and a fruit or vegetable, and it lists water as the drink. It contains no sweets, chocolate spread, crisps or sugary drinks.
-- [ ] AC-18: Given any lunchbox item, when it is inspected, then it needs no reheating at school and no cooking that morning beyond boiling eggs or slicing. Its prep time is at most 10 minutes.
-- [ ] AC-19: Given a week with 2 or more school lunches, when lunchboxes are planned, then no 12:30 lunch repeats on consecutive school days, and no morning snack is the same item on consecutive school days (unless AC-14 applies).
-- [ ] AC-20: Given the lunchbox catalogue, when it is inspected, then it includes at least 3 lunches with a Zimbabwean element, made from supermarket food (AC-15).
+- [x] AC-16: Given any planned morning snack, when it is inspected, then it is a single portion of fruit or vegetables from the winter list (for example apple, pear, mandarin or clementine, carrot sticks, cucumber, small tomatoes) and contains no sweets, biscuits, crisps or juice.
+- [x] AC-17: Given any planned kids' 12:30 lunch, when it is inspected, then it has a wholegrain base (wholegrain bread or crackers, or a cold alternative such as boiled sweet potato), a topping or protein, and a fruit or vegetable, and it lists water as the drink. It contains no sweets, chocolate spread, crisps or sugary drinks.
+- [x] AC-18: Given any lunchbox item, when it is inspected, then it needs no reheating at school and no cooking that morning beyond boiling eggs or slicing. Its prep time is at most 10 minutes.
+- [x] AC-19: Given a week with 2 or more school lunches, when lunchboxes are planned, then no 12:30 lunch repeats on consecutive school days, and no morning snack is the same item on consecutive school days (unless AC-14 applies).
+- [x] AC-20: Given the lunchbox catalogue, when it is inspected, then it includes at least 3 lunches with a Zimbabwean element, made from supermarket food (AC-15).
 
 Adult and family lunches
 
-- [ ] AC-21: Given the adult and family lunch catalogues, when they are inspected, then they include cold options (sandwich or salad style), warm options (for example soup, eggs with tomato and bread, beans on toast) and at least 2 Zimbabwean-heritage options. No lunch is "leftovers".
-- [ ] AC-22: Given an adult lunch, when quantities are worked out, then they cover A portions. Given a family lunch, they cover A + 0.6 × K portions. Given a lunchbox or snack, they cover K kids' portions.
+- [x] AC-21: Given the adult and family lunch catalogues, when they are inspected, then they include cold options (sandwich or salad style), warm options (for example soup, eggs with tomato and bread, beans on toast) and at least 2 Zimbabwean-heritage options. No lunch is "leftovers".
+- [x] AC-22: Given an adult lunch, when quantities are worked out, then they cover A portions. Given a family lunch, they cover A + 0.6 × K portions. Given a lunchbox or snack, they cover K kids' portions.
 
 Shopping list and budget
 
-- [ ] AC-23: Given a planned week with lunches, when the shopping list is built, then every non-cupboard ingredient of every lunch, snack and lunchbox appears on a promotion line, and each line's "for" text names the lunches it is bought for alongside the dinners. The one exception is today's rule in `realize()`: a multi-buy promotion that would buy more than the meals use is listed as a regular-price line that names the promotion.
-- [ ] AC-24: Given an ingredient used by both dinners and lunches, when the shopping list is built, then it appears once, with the quantity for all its uses.
-- [ ] AC-25: Given several lunches qualify for a slot, when lunches are planned, then they are ranked by promotion value (saving on the promotion lines they need), with fixed tie-breaking, as dinners are scored today.
-- [ ] AC-26: Given a weekly budget, when the week is planned, then the budget is held against the promotion lines for dinners **and** lunches. `weekCost` includes them, and the over-budget message shows when the combined total is over.
-- [ ] AC-27: Given Settings with no pork, no shellfish or exclude words, when lunches are planned or offered as swaps, then no lunch name or ingredient fails `allowed()`. For example, ham and other pork toppings never appear when "no pork" is on.
-- [ ] AC-28: Given the new lunch ingredients (at least wholegrain bread, cheese, apples, pears, mandarins or clementines, cucumber), when PrijsProfeet deals are matched, then each one matches typical product names and excludes look-alikes such as "appeltaart", "perensap" or "kaascroissant", with match tests. The deal download includes the category bread lives in.
+- [x] AC-23: Given a planned week with lunches, when the shopping list is built, then every non-cupboard ingredient of every lunch, snack and lunchbox appears on a promotion line, and each line's "for" text names the lunches it is bought for alongside the dinners. The one exception is today's rule in `realize()`: a multi-buy promotion that would buy more than the meals use is listed as a regular-price line that names the promotion.
+- [x] AC-24: Given an ingredient used by both dinners and lunches, when the shopping list is built, then it appears once, with the quantity for all its uses.
+- [x] AC-25: Given several lunches qualify for a slot, when lunches are planned, then they are ranked by promotion value (saving on the promotion lines they need), with fixed tie-breaking, as dinners are scored today.
+- [x] AC-26: Given a weekly budget, when the week is planned, then the budget is held against the promotion lines for dinners **and** lunches. `weekCost` includes them, and the over-budget message shows when the combined total is over.
+- [x] AC-27: Given Settings with no pork, no shellfish or exclude words, when lunches are planned or offered as swaps, then no lunch name or ingredient fails `allowed()`. For example, ham and other pork toppings never appear when "no pork" is on.
+- [x] AC-28: Given the new lunch ingredients (at least wholegrain bread, cheese, apples, pears, mandarins or clementines, cucumber), when PrijsProfeet deals are matched, then each one matches typical product names and excludes look-alikes such as "appeltaart", "perensap" or "kaascroissant", with match tests. The deal download includes the category bread lives in.
 
 Week view, sheets and swapping
 
-- [ ] AC-29: Given a planned day, when the week view renders, then the day card shows its meals in time order with clear labels: "School snack", "Lunchbox (12:30)", "Lunch", "Family lunch", "Dinner". It has no horizontal scroll at 360 px wide.
-- [ ] AC-30: Given a lunch, snack or lunchbox on the week view, when the user taps it, then a sheet opens with its contents, short preparation steps, and each ingredient tagged by shopping-list status (on offer at retailer and price, or cupboard), as for dinners.
-- [ ] AC-31: Given a lunch, snack or lunchbox on the week view, when the user chooses to swap it, then a swap sheet lists other items of the **same kind** (snack for snack, lunchbox for lunchbox, adult lunch for adult lunch, family lunch for family lunch). These pass AC-11 and AC-27, are ranked by promotion value, and leave out the item already in that slot.
-- [ ] AC-32: Given the user picks an item in a lunch swap sheet, when the swap is made, then only that slot changes, the shopping list and total are rebuilt, and the swap is kept after a reload. Dinners and other lunch slots are unchanged. A hand swap may break the no-repeat rule of AC-19.
-- [ ] AC-33: Given the user plans a new week, or changes adults, kids or selected retailers, when the plan is rebuilt, then lunches are re-planned and the shopping list and total follow.
-- [ ] AC-34: Given a plan saved with lunches, when the app is reloaded, then the same lunches are shown and the list is unchanged. A plan saved before this change (dinners only) loads, gets lunches planned, and keeps its dinners.
+- [x] AC-29: Given a planned day, when the week view renders, then the day card shows its meals in time order with clear labels: "School snack", "Lunchbox (12:30)", "Lunch", "Family lunch", "Dinner". It has no horizontal scroll at 360 px wide.
+- [x] AC-30: Given a lunch, snack or lunchbox on the week view, when the user taps it, then a sheet opens with its contents, short preparation steps, and each ingredient tagged by shopping-list status (on offer at retailer and price, or cupboard), as for dinners.
+- [x] AC-31: Given a lunch, snack or lunchbox on the week view, when the user chooses to swap it, then a swap sheet lists other items of the **same kind** (snack for snack, lunchbox for lunchbox, adult lunch for adult lunch, family lunch for family lunch). These pass AC-11 and AC-27, are ranked by promotion value, and leave out the item already in that slot.
+- [x] AC-32: Given the user picks an item in a lunch swap sheet, when the swap is made, then only that slot changes, the shopping list and total are rebuilt, and the swap is kept after a reload. Dinners and other lunch slots are unchanged. A hand swap may break the no-repeat rule of AC-19.
+- [x] AC-33: Given the user plans a new week, or changes adults, kids or selected retailers, when the plan is rebuilt, then lunches are re-planned and the shopping list and total follow.
+- [x] AC-34: Given a plan saved with lunches, when the app is reloaded, then the same lunches are shown and the list is unchanged. A plan saved before this change (dinners only) loads, gets lunches planned, and keeps its dinners.
 
 Dinners unchanged
 
-- [ ] AC-35: Given any settings with K = 0, when dinners are planned, then `suggest()`, the sadza rule, `alternatives()`, the dinner swap sheet and the "Or make:" options (RFC-2026-005) give the same results as before this change.
+- [x] AC-35: Given any settings with K = 0, when dinners are planned, then `suggest()`, the sadza rule, `alternatives()`, the dinner swap sheet and the "Or make:" options (RFC-2026-005) give the same results as before this change.
 
 ## Out Of Scope
 
@@ -266,3 +266,4 @@ Dependencies and risks:
 | 2026-11-07 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |
 | 2026-11-07 | Claude (agent) | Back to draft for a scope change requested by the requester: `src/components/RecipesView.tsx` added to `affected_areas` (one-line `dayAt` fix for dated weeks). Recorded the three decisions taken after approval. Acceptance criteria unchanged. |
 | 2026-11-07 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |
+| 2026-11-07 | Fortune Tiriboyi | Implemented — see CR-2026-006 |

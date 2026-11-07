@@ -9,7 +9,7 @@ approved_by: Fortune Tiriboyi <tiriboyifortune@gmail.com>
 approved_on: 2026-11-07
 created: 2026-11-07
 updated: 2026-11-07
-affected_areas: [src/lib/types.ts, src/lib/settings.ts, src/lib/settings.test.ts, src/lib/planner.ts, src/lib/planner.test.ts, src/lib/ingredients.ts, src/lib/ingredients.test.ts, src/lib/lunches.ts, src/lib/lunches.test.ts, src/lib/schoolCalendar.ts, src/lib/schoolCalendar.test.ts, src/components/PlanProvider.tsx, src/components/PlanProvider.test.tsx, src/components/WeekView.tsx, src/components/WeekView.test.tsx, src/components/ShoppingView.tsx, src/components/ShoppingView.test.tsx, src/components/SettingsView.tsx, src/components/SettingsView.test.tsx, src/components/RecipeSheet.tsx, src/components/RecipeSheet.test.tsx, src/components/SwapSheet.tsx, src/components/SwapSheet.test.tsx, src/components/ui.tsx, src/app/globals.css]
+affected_areas: [src/lib/types.ts, src/lib/settings.ts, src/lib/settings.test.ts, src/lib/planner.ts, src/lib/planner.test.ts, src/lib/ingredients.ts, src/lib/ingredients.test.ts, src/lib/lunches.ts, src/lib/lunches.test.ts, src/lib/schoolCalendar.ts, src/lib/schoolCalendar.test.ts, src/components/PlanProvider.tsx, src/components/PlanProvider.test.tsx, src/components/WeekView.tsx, src/components/WeekView.test.tsx, src/components/ShoppingView.tsx, src/components/ShoppingView.test.tsx, src/components/SettingsView.tsx, src/components/SettingsView.test.tsx, src/components/RecipeSheet.tsx, src/components/RecipeSheet.test.tsx, src/components/SwapSheet.tsx, src/components/SwapSheet.test.tsx, src/components/RecipesView.tsx, src/components/ui.tsx, src/app/globals.css]
 ---
 
 # REQ-2026-006 - Lunches and school lunchboxes for a family with kids
@@ -225,7 +225,11 @@ Dinners unchanged
 
 Decided by the requester (2026-11-07): lunches go on the shopping list and in the budget; Wednesday is a half day (snack at school, lunch at home); the household is adults + kids with a kid at 0.6 of an adult portion; style is Dutch school guidance mixed with Zimbabwean dishes; adults also get warm lunches; no leftovers; days follow the calendar with the Utrecht school calendar; lunches can be swapped by hand; every lunch must be made from food sold at the selected supermarkets.
 
-**Open, please confirm before approval:**
+**Decided after the first approval (2026-11-07), answering the three open questions below:** (1) the promotion-only rule applies to lunches only, dinners are unchanged; (2) school holidays come from a table in the code, from rijksoverheid.nl, updated yearly; (3) past days of a dated week stay visible, marked as past.
+
+**Scope revision (2026-11-07):** `src/components/RecipesView.tsx` is added to `affected_areas`. The recipes page labels a planned dinner with `dayAt(position)`, which counts from today. With weeks fixed to dates (AC-4) it must count from the week's start date, a one-line change. Without it the recipes page would name the wrong day for a week reopened on a later date.
+
+**Open questions at the first approval (now decided, see above):**
 1. **Dinners and the promotion-only rule.** You said *all* dishes must be available at the selected supermarkets, and clarified that this means on promotion. This RFC applies it to lunches only. Dinners today prefer promotions but may use regular-price ingredients, and maize meal for sadza is a cupboard item from a toko. Making dinners promotion-only would often leave too few dinners and would clash with the "at least one sadza dinner a week" rule. Recommendation: keep dinners as they are in this RFC, with a separate follow-up if wanted. Do you agree?
 2. **Where the school holidays come from** (AC-6, AC-7). Recommendation: a table in the code for region middle, school years 2026–2027 and 2027–2028, copied from rijksoverheid.nl, with the source and date in a comment and a yearly update. The alternative, fetching the Rijksoverheid open-data feed at run time, adds a network dependency and a failure mode. Is the bundled table acceptable?
 3. **Days fixed to dates** (AC-4) also changes the dinner labels: a week planned on Monday and opened on Wednesday will show Monday and Tuesday as past days instead of re-labelling them. Is that what you want, or should past days be hidden?
@@ -259,4 +263,6 @@ Dependencies and risks:
 | 2026-11-07 | Fortune Tiriboyi | Created draft |
 | 2026-11-07 | Claude (agent) | Filled in all sections from the requester's request and answers of 2026-11-07 |
 | 2026-11-07 | Claude (agent) | Revised from the requester's second answers: kid portion 0.6 confirmed; leftovers dropped; days fixed to dates with the Utrecht (region middle) school calendar; lunch swaps added; lunches limited to food sold at the selected supermarkets. Criteria renumbered (now AC-1 to AC-35). |
+| 2026-11-07 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |
+| 2026-11-07 | Claude (agent) | Back to draft for a scope change requested by the requester: `src/components/RecipesView.tsx` added to `affected_areas` (one-line `dayAt` fix for dated weeks). Recorded the three decisions taken after approval. Acceptance criteria unchanged. |
 | 2026-11-07 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |

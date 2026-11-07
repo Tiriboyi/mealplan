@@ -1,11 +1,11 @@
 ---
 id: RFC-2026-006
 title: Lunches and school lunchboxes for a family with kids
-status: draft
+status: approved
 type: change
 requested_by: Fortune Tiriboyi
 decision_owner: Fortune Tiriboyi
-approved_by: Fortune Tiriboyi
+approved_by: Fortune Tiriboyi <tiriboyifortune@gmail.com>
 approved_on: 2026-11-07
 created: 2026-11-07
 updated: 2026-11-07
@@ -259,3 +259,4 @@ Dependencies and risks:
 | 2026-11-07 | Fortune Tiriboyi | Created draft |
 | 2026-11-07 | Claude (agent) | Filled in all sections from the requester's request and answers of 2026-11-07 |
 | 2026-11-07 | Claude (agent) | Revised from the requester's second answers: kid portion 0.6 confirmed; leftovers dropped; days fixed to dates with the Utrecht (region middle) school calendar; lunch swaps added; lunches limited to food sold at the selected supermarkets. Criteria renumbered (now AC-1 to AC-35). |
+| 2026-11-07 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |

@@ -1060,7 +1060,15 @@ main {
 .slot-name {
   grid-area: name;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+/* On phones the photo and swap button share the top row, so meals get the card's full width. */
+@media (max-width: 719.98px) {
+  .meal-body {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
 }
 
 /* Like the dinner options, lunch names sit above the card's recipe hit area. */

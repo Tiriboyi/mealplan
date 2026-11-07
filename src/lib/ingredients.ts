@@ -10,9 +10,16 @@ const CANS = "soepen-conserven-sauzen";
 const DAIRY = "zuivel-eieren";
 const FROZEN = "diepvries";
 const SPREADS = "ontbijt";
+const BREAD = "brood-bakkerij";
+const CHEESE = "kaas";
+const VEGA = "vega";
+const SNACKS = "snoep-koek-chips";
 
 /** Categories worth downloading: everything an ingredient below can live in. */
-export const FOOD_CATEGORIES = [MEAT, FISH, VEG, DRY, CANS, DAIRY, FROZEN, SPREADS];
+export const FOOD_CATEGORIES = [MEAT, FISH, VEG, DRY, CANS, DAIRY, FROZEN, SPREADS, BREAD, CHEESE, VEGA, SNACKS];
+
+// Fruit drinks and fruit bars that name a fruit ("Dubbelfrisss appel", "Van de Boom Peer").
+const FRUIT_DRINKS = /\b(dubbel ?fris+\w*|boost|fruity|1fruit|van de boom|juice|pers\w*)\b/;
 
 export type Ingredient = {
   id: string;
@@ -310,6 +317,109 @@ const INGREDIENTS: Ingredient[] = [
     nl: "pindakaas",
     grams: 30,
     match: { any: /\bpindakaas\b/, not: /\b(light|bewust)\b/, categories: [SPREADS], allowPrepared: true },
+  },
+
+  // Lunch: bread, toppings and fruit for the school break
+  {
+    id: "wholegrain_bread",
+    name: "Wholegrain bread",
+    nl: "volkoren brood",
+    grams: 70,
+    match: {
+      any: /\b(volkoren|meergranen)\b/,
+      not: /\b(baguette\w*|\w*koek\w*|\w*crackers?|beschuit\w*|muesli|crunch\w*|loops)\b/,
+      categories: [BREAD],
+    },
+  },
+  {
+    id: "wholegrain_crackers",
+    name: "Wholegrain crackers",
+    nl: "knäckebröd / volkoren crackers",
+    grams: 30,
+    match: { any: /\b(knackebrod|volkoren ?crackers?)\b/, categories: [SPREADS, SNACKS, BREAD] },
+  },
+  {
+    id: "cheese",
+    name: "Cheese (Gouda)",
+    nl: "jong belegen kaas, plakken",
+    grams: 25,
+    match: {
+      any: /\b(goudse|gouda|jong belegen|belegen|jonge kaas)\b/,
+      not: /\b(extra belegen|oude?|overjarige?|fondue|\w*salade|komijn|\w*hummus|geraspte?|grillworst)\b/,
+      categories: [CHEESE],
+    },
+  },
+  {
+    id: "hummus",
+    name: "Hummus",
+    nl: "hummus naturel",
+    grams: 30,
+    match: { any: /\bhummus\b/, not: /\b(pikant|pesto)\b/, categories: [CHEESE, VEGA] },
+  },
+  {
+    id: "apples",
+    name: "Apples",
+    nl: "appels (Elstar, Jonagold)",
+    grams: 130,
+    match: {
+      any: /\b(appels?|elstar|jonagold|kanzi|goudreinet|pink lady|granny smith)\b/,
+      not: FRUIT_DRINKS,
+      categories: [VEG],
+    },
+  },
+  {
+    id: "pears",
+    name: "Pears",
+    nl: "handperen (Conference)",
+    grams: 130,
+    match: {
+      any: /\b(peren|peer|handperen|conference|doyenne)\b/,
+      not: new RegExp(`${FRUIT_DRINKS.source}|\\b(gestoofde?|peertjes|stoofperen)\\b`),
+      categories: [VEG],
+    },
+  },
+  {
+    id: "mandarins",
+    name: "Mandarins",
+    nl: "mandarijnen / clementines",
+    grams: 100,
+    match: { any: /\b(\w*mandarijn(en)?|clementines?|satsumas?)\b/, not: FRUIT_DRINKS, categories: [VEG] },
+  },
+  {
+    id: "oranges",
+    name: "Oranges",
+    nl: "handsinaasappelen",
+    grams: 150,
+    match: { any: /\b(hand)?sinaasappel(en|s)?\b/, not: FRUIT_DRINKS, categories: [VEG] },
+  },
+  {
+    id: "cucumber",
+    name: "Cucumber",
+    nl: "komkommer / snoepkomkommers",
+    grams: 60,
+    match: { any: /\b(\w*komkommers?)\b/, not: /\b(\w*salade|rauwkost)\b/, categories: [VEG] },
+  },
+  {
+    id: "cherry_tomatoes",
+    name: "Cherry tomatoes",
+    nl: "snoeptomaatjes",
+    grams: 60,
+    match: {
+      any: /\b(snoeptomaten|snoeptomaatjes|cherrytomaten|cherrytomaatjes|tomaatjes)\b/,
+      not: /\b(zongedroogde?|gemarineerde?|halfgedroogde?)\b/,
+      categories: [VEG],
+    },
+  },
+  {
+    id: "popcorn",
+    name: "Plain popcorn (maputi)",
+    nl: "popcorn naturel, ongezouten",
+    grams: 15,
+    match: {
+      any: /\bpopcorn\b/,
+      not: /\b(sweet|zoet\w*|salt\w*|zout\w*|boter|butter|caramel|chili|cheese|nacho\w*)\b/,
+      categories: [SNACKS],
+    },
   },
 
   // Cupboard

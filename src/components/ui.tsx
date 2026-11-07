@@ -1,10 +1,12 @@
 "use client";
 
-import { Bean, Beef, CookingPot, Drumstick, Egg, Fish, X, type LucideIcon } from "lucide-react";
+import { Apple, Backpack, Bean, Beef, CookingPot, Drumstick, Egg, Fish, Sandwich, Soup, X, type LucideIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
+import type { LunchKind } from "@/lib/lunches";
 import { PHOTOS, photoUrl } from "@/lib/photos";
 import type { Protein, Recipe } from "@/lib/recipes";
 import { RETAILERS } from "@/lib/retailers";
+import { addDays, fromIso, isoDate } from "@/lib/schoolCalendar";
 
 const PROTEIN_ICON: Record<Protein, LucideIcon> = {
   chicken: Drumstick,
@@ -51,6 +53,24 @@ export function RecipeArt({ recipe, shape = "thumb" }: { recipe: Recipe; shape?:
   );
 }
 
+const LUNCH_ICON: Record<LunchKind, LucideIcon> = { snack: Apple, lunchbox: Backpack, adult: Sandwich, family: Soup };
+
+/** A coloured tile for a lunch, by kind; lunches have no photos. */
+export function LunchArt({ kind, shape = "thumb" }: { kind: LunchKind; shape?: keyof typeof PHOTO_SIZE }) {
+  const Icon = LUNCH_ICON[kind];
+  return (
+    <span className={`art l-${kind} ${shape}`} aria-hidden="true">
+      <Icon strokeWidth={1.5} />
+    </span>
+  );
+}
+
+/** "2 adults, 2 kids" */
+export function household({ adults, kids }: { adults: number; kids: number }): string {
+  const a = `${adults} ${adults === 1 ? "adult" : "adults"}`;
+  return kids > 0 ? `${a}, ${kids} ${kids === 1 ? "kid" : "kids"}` : a;
+}
+
 export function RetailerBadge({ retailer }: { retailer: string }) {
   return (
     <span className={`retailer-badge ${retailer}`} aria-hidden="true">
@@ -59,28 +79,29 @@ export function RetailerBadge({ retailer }: { retailer: string }) {
   );
 }
 
-export type Day = { short: string; long: string; date: number };
+export type Day = { short: string; long: string; date: number; past: boolean };
 
-/** The day `offset` days from now; dinners are planned from today onwards. */
-export function dayAt(offset: number): Day {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
+/** Day `offset` of a week that starts on `start`; the week keeps its dates when reopened later. */
+export function dayAt(start: string, offset: number): Day {
+  const iso = addDays(start, offset);
+  const d = fromIso(iso);
+  const today = isoDate(new Date());
   const weekday = d.toLocaleDateString("en-GB", { weekday: "long" });
   return {
     short: weekday.slice(0, 3),
-    long: offset === 0 ? "Today" : offset === 1 ? "Tomorrow" : weekday,
+    long: iso === today ? "Today" : iso === addDays(today, 1) ? "Tomorrow" : weekday,
     date: d.getDate(),
+    past: iso < today,
   };
 }
 
-/** "13 – 19 Oct" for a plan of `days` dinners starting today. */
-export function weekRange(days: number): string {
-  const from = new Date();
-  const to = new Date();
-  to.setDate(to.getDate() + days - 1);
+/** "13 – 19 Oct" for a plan of `days` days starting on `start`. */
+export function weekRange(start: string, days: number): string {
+  const from = fromIso(start);
+  const to = fromIso(addDays(start, days - 1));
   const month = (d: Date) => d.toLocaleDateString("en-GB", { month: "short" });
-  const start = from.getMonth() === to.getMonth() ? `${from.getDate()}` : `${from.getDate()} ${month(from)}`;
-  return days > 1 ? `${start} – ${to.getDate()} ${month(to)}` : `${to.getDate()} ${month(to)}`;
+  const first = from.getMonth() === to.getMonth() ? `${from.getDate()}` : `${from.getDate()} ${month(from)}`;
+  return days > 1 ? `${first} – ${to.getDate()} ${month(to)}` : `${to.getDate()} ${month(to)}`;
 }
 
 /** A modal that is a bottom sheet on phones and a centred dialog on wider screens. */

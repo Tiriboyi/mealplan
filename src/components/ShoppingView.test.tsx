@@ -3,9 +3,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { budgetStatus } from "@/lib/budget";
-import { buildIndex, realize, suggest, totals } from "@/lib/planner";
+import { buildIndex, planLunches, realize, suggest, totals } from "@/lib/planner";
 import { RETAILERS } from "@/lib/retailers";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { money } from "@/lib/text";
 import { DEFAULT_PREFS, type Deal } from "@/lib/types";
 import PlanProvider from "./PlanProvider";
 import ShoppingView from "./ShoppingView";
@@ -110,5 +111,50 @@ describe("budget on the shopping page", () => {
   test("no budget, no budget text", async () => {
     await open(null);
     expect(screen.queryByText(/under budget|Over budget|promotion items only/)).toBeNull();
+  });
+});
+
+describe("lunches on the shopping list", () => {
+  const MONDAY = "2026-11-09";
+  const family = { ...DEFAULT_PREFS, adults: 2, kids: 2, days: 7 };
+  const lunchDeals = [
+    ...deals,
+    deal("AH Tijger volkoren heel", "brood-bakkerij", { price: 2.29, originalPrice: 2.89, quantity: "800 g", retailer: "albert_heijn" }),
+    deal("MILBONA Plakken Goudse jong belegen kaas", "kaas", { price: 2.49, originalPrice: 3.29, quantity: "190 g", retailer: "lidl" }),
+    deal("Elstar appels", "groente-fruit", { price: 1.99, originalPrice: 2.79, quantity: "1 kg" }),
+    deal("Biologische komkommer", "groente-fruit", { price: 0.99, originalPrice: 1.29, quantity: "1 stuk" }),
+  ];
+  const idx = buildIndex(lunchDeals, family);
+  const dinners = suggest(idx, family);
+  const lunches = planLunches(MONDAY, idx, family);
+  const plan = realize(dinners, idx, family, lunches);
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 10, 9, 10, 0));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ deals: lunchDeals, usingKey: false }))));
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  // RFC-2026-006:AC-23 RFC-2026-006:AC-26
+  test("each line says which dinners and lunches it is for, and the total includes lunches", async () => {
+    localStorage.setItem("mealplan.settings", JSON.stringify({ ...DEFAULT_SETTINGS, prefs: family }));
+    localStorage.setItem(
+      "mealplan.plan",
+      JSON.stringify({ recipeIds: dinners, start: MONDAY, lunches, skipped: [], ticked: [], budget: null, overBudget: false }),
+    );
+    render(
+      <PlanProvider>
+        <ShoppingView />
+      </PlanProvider>,
+    );
+    await screen.findByText("Offers on the list");
+
+    const bread = plan.promo.find((l) => l.ingredient.id === "wholegrain_bread")!;
+    expect(bread.meals.length).toBeGreaterThan(0);
+    const row = screen.getByText(`${bread.units} × ${bread.deal.name}`).closest("li")!;
+    expect(row.querySelector(".line-for")!.textContent).toBe(`For ${bread.meals.join(", ")}`);
+    expect(screen.getByText(exactly(money(totals(plan.promo).pay)))).toBeTruthy();
   });
 });

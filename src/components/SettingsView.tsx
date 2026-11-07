@@ -4,8 +4,12 @@ import { Check, Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BUDGET_ERROR, parseBudget } from "@/lib/budget";
 import { RETAILERS, type PromoStatus } from "@/lib/retailers";
+import { fromIso, KNOWN_UNTIL } from "@/lib/schoolCalendar";
 import type { Settings } from "@/lib/settings";
 import { usePlan } from "./PlanProvider";
+
+/** "20 Aug 2028": the last day the school-holiday table covers. */
+const HOLIDAYS_UNTIL = fromIso(KNOWN_UNTIL).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 export default function SettingsView() {
   const { settings, applySettings } = usePlan();
@@ -88,7 +92,10 @@ function SettingsForm({ settings, onSave }: { settings: Settings; onSave: (next:
     <form className="settings" onSubmit={submit}>
       <fieldset className="card">
         <legend>Household</legend>
-        <Stepper label="People at the table" value={draft.prefs.people} min={1} max={10} onChange={(people) => setPrefs({ people })} />
+        <Stepper label="Adults" value={draft.prefs.adults} min={1} max={10} onChange={(adults) => setPrefs({ adults })} />
+        <Stepper label="Kids" value={draft.prefs.kids} min={0} max={6} onChange={(kids) => setPrefs({ kids })} />
+        <p className="meta">Kids get a school snack and a 12:30 lunchbox on school days, and lunch at home on Wednesdays.</p>
+        <p className="meta">{`School holidays (region Midden, Utrecht) known until ${HOLIDAYS_UNTIL}.`}</p>
         <Stepper label="Dinners to plan" value={draft.prefs.days} min={1} max={7} onChange={(days) => setPrefs({ days })} />
         <div className="stepper">
           <label htmlFor="budget">Weekly budget (€)</label>

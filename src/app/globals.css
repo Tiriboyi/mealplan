@@ -966,6 +966,28 @@ main {
   z-index: 1;
 }
 
+.meal-body > .meal-options {
+  margin-top: 8px;
+}
+
+/* Like the swap button, the options sit above the card's recipe hit area. */
+.meal-option {
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.meal-option:hover {
+  color: var(--accent);
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -992,6 +1014,99 @@ main {
 
 .meal-body > .meta:last-child {
   margin-top: 8px;
+}
+
+/* A day that is over: still listed, so the week matches the shopping list. */
+.meal.past {
+  opacity: 0.6;
+}
+
+/* Lunch slots above the dinner, in the order the day eats them. */
+.slots {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 12px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--line);
+  list-style: none;
+}
+
+.slot {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "art kind swap" "art name swap";
+  align-items: center;
+  column-gap: 10px;
+}
+
+.meal .slot .art,
+.meal.tonight .slot .art {
+  grid-area: art;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.slot-kind {
+  grid-area: kind;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.slot-name {
+  grid-area: name;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* On phones the photo and swap button share the top row, so meals get the card's full width. */
+@media (max-width: 719.98px) {
+  .meal-body {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+/* Like the dinner options, lunch names sit above the card's recipe hit area. */
+button.slot-name {
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+}
+
+button.slot-name:hover {
+  color: var(--accent);
+}
+
+.slot-swap {
+  grid-area: swap;
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+}
+
+.l-snack {
+  --tint: #7fa53f;
+}
+.l-lunchbox {
+  --tint: #4f9fc4;
+}
+.l-adult {
+  --tint: #fdbf50;
+}
+.l-family {
+  --tint: #ff724c;
 }
 
 @media (min-width: 720px) {

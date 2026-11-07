@@ -1,7 +1,27 @@
 import { describe, expect, test } from "vitest";
 import { allowed, isPork, isShellfish } from "./diet";
-import { ingredientsFor } from "./ingredients";
-import { alternatives, buildIndex, fitsWeek, keepOrPlan, planWeek, realize, suggest, totals, weekCost } from "./planner";
+import { INGREDIENT, ingredientsFor } from "./ingredients";
+import { LUNCH, LUNCH_PANTRY, type LunchKind } from "./lunches";
+import {
+  alternatives,
+  buildIndex,
+  dinnerOptions,
+  fitsWeek,
+  keepLunches,
+  keepOrPlan,
+  KID_PORTION,
+  lunchOptions,
+  planLunches,
+  planWeek,
+  portions,
+  qualifies,
+  realize,
+  suggest,
+  totals,
+  weekCost,
+  type Lunches,
+} from "./planner";
+import { addDays, lunchSlots } from "./schoolCalendar";
 import { packGrams, purchase } from "./pricing";
 import { RECIPE, RECIPES } from "./recipes";
 import { DEFAULT_PREFS, type Deal } from "./types";
@@ -222,7 +242,7 @@ describe("planning", () => {
   });
 
   test("the shopping list totals what the promotions save", () => {
-    const plan = realize(["sadza-chicken-stew"], index, { ...DEFAULT_PREFS, people: 2 });
+    const plan = realize(["sadza-chicken-stew"], index, { ...DEFAULT_PREFS, adults: 2, kids: 0 });
     expect(plan.promo.map((l) => l.deal.name).sort()).toEqual([
       "Heinz Tomaten gepeld",
       "PLUS Boerentrots Kippenbout 2st",
@@ -233,10 +253,15 @@ describe("planning", () => {
     expect(totals(plan.promo)).toEqual({ pay: 5.99, normal: 8.87, saving: 2.88, percent: 32 });
   });
 
-  test("more people means more packs", () => {
-    const line = (people: number) =>
-      realize(["sadza-chicken-stew"], index, { ...DEFAULT_PREFS, people }).promo.find((l) => l.ingredient.id === "chicken_pieces")!;
+  // RFC-2026-006:AC-3
+  test("more people means more packs, a kid counting as 0.6 of an adult", () => {
+    const line = (adults: number, kids = 0) =>
+      realize(["sadza-chicken-stew"], index, { ...DEFAULT_PREFS, adults, kids }).promo.find((l) => l.ingredient.id === "chicken_pieces")!;
+    expect(KID_PORTION).toBe(0.6);
+    expect(portions({ ...DEFAULT_PREFS, adults: 2, kids: 2 })).toBeCloseTo(3.2);
+    // 300 g a portion from an 800 g pack: 2 adults need 600 g, 2 adults and 2 kids 960 g.
     expect(line(2).units).toBe(1);
+    expect(line(2, 2).units).toBe(2);
     expect(line(5).units).toBe(2);
   });
 
@@ -382,5 +407,336 @@ describe("planning", () => {
         expect(keepOrPlan({ recipeIds: tooMuch, budget: 1, overBudget: true }, index, prefs)).toEqual(planWeek(index, prefs));
       });
     });
+  });
+});
+
+describe("dinner options", () => {
+  const deals = [
+    deal("PLUS Boerentrots Kippenbout 2st", "vlees", { price: 3.99, originalPrice: 4.99, quantity: "800 g", retailer: "plus" }),
+    deal("Plus Boerenkool fijngesneden", "groente-fruit", { price: 1, originalPrice: 2.49, quantity: "500 g" }),
+    deal("Heinz Tomaten gepeld", "soepen-conserven-sauzen", { price: 1, originalPrice: 1.39 }),
+  ];
+  const index = buildIndex(deals, DEFAULT_PREFS);
+  const prefsFor = (ids: string[]) => ({ ...DEFAULT_PREFS, days: ids.length });
+
+  // Its list also makes sadza-chicken-stew, beef-cabbage and mince-greens, and nothing else.
+  const week = ["sadza-beef-stew", "rice-chicken-stew", "macaroni-mince"];
+  const prefs = prefsFor(week);
+  const plan = realize(week, index, prefs);
+  const options = dinnerOptions(plan, week, [], prefs);
+
+  const onList = (p: typeof plan) => new Set([...p.promo, ...p.regular].map((l) => l.ingredient.id));
+  const needs = (id: string) => [RECIPE[id].main, ...RECIPE[id].with].filter((i) => !INGREDIENT[i].pantry);
+
+  test("gives one list of options per day", () => {
+    expect(options).toHaveLength(week.length);
+  });
+
+  // RFC-2026-005:AC-2
+  test("every option is cooked from what the list already buys, plus the cupboard", () => {
+    const bought = onList(plan);
+    for (const id of options.flat()) for (const i of needs(id)) expect(bought).toContain(i);
+    expect(new Set(options.flat())).toEqual(new Set(["sadza-chicken-stew", "beef-cabbage", "mince-greens"]));
+  });
+
+  // RFC-2026-005:AC-3
+  test("a dinner already planned is never an option", () => {
+    expect(options.flat().some((id) => week.includes(id))).toBe(false);
+  });
+
+  // RFC-2026-005:AC-4
+  test("an offer marked 'I already have it' does not count as bought", () => {
+    const chicken = plan.promo.find((l) => l.ingredient.id === "chicken_pieces");
+    expect(chicken).toBeDefined();
+    const skipped = dinnerOptions(plan, week, [chicken!.deal.id], prefs).flat();
+    expect(skipped).not.toContain("sadza-chicken-stew");
+    expect(skipped).toContain("mince-greens");
+  });
+
+  // RFC-2026-005:AC-5
+  test("working out the options leaves the shopping list and its total exactly as they were", () => {
+    const before = structuredClone(plan);
+    dinnerOptions(plan, week, [], prefs);
+    expect(plan).toEqual(before);
+    expect(realize(week, index, prefs)).toEqual(before);
+    expect(totals(plan.promo)).toEqual(totals(before.promo));
+  });
+
+  // RFC-2026-005:AC-6
+  test("options respect the diet settings, including excluded words", () => {
+    const strict = { ...prefs, exclude: ["mince"] };
+    const picked = dinnerOptions(plan, week, [], strict).flat();
+    expect(picked).not.toContain("mince-greens");
+    expect(picked).toContain("sadza-chicken-stew");
+    for (const id of picked) {
+      expect(allowed(RECIPE[id].name, strict)).toBe(true);
+      for (const i of [RECIPE[id].main, ...RECIPE[id].with]) expect(allowed(INGREDIENT[i].name, strict)).toBe(true);
+    }
+  });
+
+  // RFC-2026-005:AC-7
+  test("each day lists at most two, sharing the most with that day's dinner first", () => {
+    for (const day of options) expect(day.length).toBeLessThanOrEqual(2);
+    // Macaroni and mince shares mince, tomatoes and onions with mince-greens, only two with the others.
+    expect(options[2]).toEqual(["mince-greens", "sadza-chicken-stew"]);
+    // Equal overlap keeps recipe order.
+    expect(options[0]).toEqual(["sadza-chicken-stew", "beef-cabbage"]);
+    expect(options[1]).toEqual(["sadza-chicken-stew", "beef-cabbage"]);
+  });
+
+  // RFC-2026-005:AC-8
+  test("the same dinner may be offered on more than one day", () => {
+    expect(options.filter((day) => day.includes("sadza-chicken-stew")).length).toBeGreaterThan(1);
+  });
+
+  // RFC-2026-005:AC-9
+  test("options ignore the sadza limit and leave the planned week's sadza as it is", () => {
+    const twoSadza = ["sadza-beef-stew", "mince-greens", "rice-chicken-stew"];
+    const p = prefsFor(twoSadza);
+    expect(fitsWeek(twoSadza, p)).toBe(true);
+    const offered = dinnerOptions(realize(twoSadza, index, p), twoSadza, [], p).flat();
+    expect(offered.some((id) => RECIPE[id].base === "sadza")).toBe(true);
+    expect(fitsWeek(twoSadza, p)).toBe(true);
+  });
+
+  // RFC-2026-005:AC-10
+  test("a list that makes nothing else gives every day an empty list", () => {
+    const narrow = ["oxtail", "macaroni-mince"];
+    const p = prefsFor(narrow);
+    expect(dinnerOptions(realize(narrow, index, p), narrow, [], p)).toEqual([[], []]);
+  });
+
+  // RFC-2026-005:AC-14
+  test("the budget planner gives the same week and cost with options worked out", () => {
+    const budgeted = { ...DEFAULT_PREFS, budget: 10 };
+    const before = planWeek(index, budgeted, 3);
+    dinnerOptions(realize(before.recipeIds, index, budgeted), before.recipeIds, [], budgeted);
+    expect(planWeek(index, budgeted, 3)).toEqual(before);
+    expect(weekCost(before.recipeIds, index, budgeted)).toBe(weekCost(planWeek(index, budgeted, 3).recipeIds, index, budgeted));
+  });
+
+  // RFC-2026-005:AC-15
+  test("the swap list still offers dinners the shopping list cannot make", () => {
+    const swaps = alternatives(week, 0, index, prefs);
+    const notMakeable = swaps.filter((id) => !options.flat().includes(id));
+    expect(notMakeable.length).toBeGreaterThan(0);
+  });
+});
+
+describe("lunches", () => {
+  // Monday 9 November 2026: four full school days, a school Wednesday and a weekend.
+  const MONDAY = "2026-11-09";
+  const family = { ...DEFAULT_PREFS, adults: 2, kids: 2, days: 7 };
+
+  const lunchDeals = [
+    deal("AH Tijger volkoren heel", "brood-bakkerij", { price: 2.29, originalPrice: 2.89, quantity: "800 g", retailer: "albert_heijn" }),
+    deal("MILBONA Plakken Goudse jong belegen kaas", "kaas", { price: 2.49, originalPrice: 3.29, quantity: "190 g", retailer: "lidl" }),
+    deal("Elstar appels", "groente-fruit", { price: 1.99, originalPrice: 2.79, quantity: "1 kg" }),
+    deal("Conference peren", "groente-fruit", { price: 1.79, originalPrice: 2.49, quantity: "1 kg" }),
+    deal("Plus Mandarijnen", "groente-fruit", { price: 2.49, originalPrice: 3.49, quantity: "1 kg", retailer: "plus" }),
+    deal("Biologische komkommer", "groente-fruit", { price: 0.99, originalPrice: 1.29, quantity: "1 stuk" }),
+    deal("Plus Hummus naturel", "kaas", { price: 1.5, originalPrice: 2.19, quantity: "200 g", retailer: "plus" }),
+    deal("The Flower Farm Pindakaas zonder palmolie", "ontbijt", { price: 3.49, originalPrice: 4.49, quantity: "350 g", retailer: "plus" }),
+  ];
+  const index = buildIndex(lunchDeals, family);
+  const noBread = buildIndex(lunchDeals.filter((d) => d.category !== "brood-bakkerij"), family);
+  const empty = buildIndex([], family);
+
+  const kindOf = (key: string) => key.split("-")[1] as LunchKind;
+  const dayOf = (key: string) => Number(key.split("-")[0]);
+  const needs = (id: string) => Object.keys(LUNCH[id].amounts).filter((i) => !INGREDIENT[i].pantry);
+  /** Slot keys of one kind, in day order. */
+  const slotsOf = (lunches: Lunches, kind: LunchKind) =>
+    Object.keys(lunches).filter((k) => kindOf(k) === kind).sort((a, b) => dayOf(a) - dayOf(b));
+
+  test("plans every slot of every day, by its weekday", () => {
+    const lunches = planLunches(MONDAY, index, family);
+    const expected = Array.from({ length: 7 }, (_, day) => lunchSlots(addDays(MONDAY, day), 2).map((k) => `${day}-${k}`)).flat();
+    expect(Object.keys(lunches).sort()).toEqual(expected.sort());
+    expect(lunches["0-lunchbox"]).not.toBeNull();
+    expect(lunches["2-family"]).not.toBeNull();
+    expect(lunches["5-family"]).not.toBeNull();
+    for (const [key, id] of Object.entries(lunches)) if (id) expect(LUNCH[id].kinds, key).toContain(kindOf(key));
+  });
+
+  // RFC-2026-006:AC-11
+  test("a lunch is only planned when everything it needs is on promotion", () => {
+    for (const idx of [index, noBread])
+      for (let seed = 0; seed < 10; seed++)
+        for (const id of Object.values(planLunches(MONDAY, idx, family, seed)))
+          if (id) for (const i of needs(id)) expect(idx.has(i), `${id}: ${i}`).toBe(true);
+    expect(qualifies(LUNCH["box-cheese-cucumber"], index, family)).toBe(true);
+    expect(qualifies(LUNCH["box-cheese-cucumber"], noBread, family)).toBe(false);
+  });
+
+  // RFC-2026-006:AC-12
+  test("saved lunches are kept while they qualify, and replaced when their promotion is gone", () => {
+    const lunches = planLunches(MONDAY, index, family);
+    expect(keepLunches(lunches, MONDAY, index, family)).toBe(lunches);
+
+    const noApples = buildIndex(lunchDeals.filter((d) => d.name !== "Elstar appels"), family);
+    const kept = keepLunches(lunches, MONDAY, noApples, family);
+    expect(Object.keys(kept).sort()).toEqual(Object.keys(lunches).sort());
+    for (const id of Object.values(kept)) if (id) expect(needs(id)).not.toContain("apples");
+  });
+
+  // RFC-2026-006:AC-12
+  test("lunches are replanned when the household changes the slots", () => {
+    const lunches = planLunches(MONDAY, index, family);
+    const kept = keepLunches(lunches, MONDAY, index, { ...family, kids: 0 });
+    expect(kept).not.toBe(lunches);
+    expect(Object.keys(kept).some((k) => kindOf(k) === "lunchbox" || kindOf(k) === "snack")).toBe(false);
+  });
+
+  // RFC-2026-006:AC-13
+  test("cupboard items never let a lunch qualify by themselves", () => {
+    for (const id of Object.keys(LUNCH))
+      for (const i of Object.keys(LUNCH[id].amounts)) if (INGREDIENT[i].pantry) expect(LUNCH_PANTRY).toContain(i);
+  });
+
+  // RFC-2026-006:AC-14
+  test("with nothing on promotion every slot is empty rather than unavailable", () => {
+    const lunches = planLunches(MONDAY, empty, family);
+    expect(Object.values(lunches).every((id) => id === null)).toBe(true);
+  });
+
+  // RFC-2026-006:AC-14
+  test("without bread, snacks are still planned and bread lunches are not", () => {
+    const lunches = planLunches(MONDAY, noBread, family);
+    for (const key of slotsOf(lunches, "snack")) expect(lunches[key]).not.toBeNull();
+    for (const key of slotsOf(lunches, "lunchbox")) expect(lunches[key]).toBeNull();
+  });
+
+  // RFC-2026-006:AC-14
+  test("with only one lunchbox on promotion it repeats rather than leaving days empty", () => {
+    const one = buildIndex(lunchDeals.filter((d) => !/pindakaas|hummus/i.test(d.name)), family);
+    const lunches = planLunches(MONDAY, one, family);
+    const boxes = slotsOf(lunches, "lunchbox").map((k) => lunches[k]);
+    expect(boxes).toHaveLength(4);
+    expect(new Set(boxes)).toEqual(new Set(["box-cheese-cucumber"]));
+  });
+
+  // RFC-2026-006:AC-19
+  test("no lunchbox or snack repeats on consecutive school days when there is a choice", () => {
+    for (let seed = 0; seed < 20; seed++) {
+      const lunches = planLunches(MONDAY, index, family, seed);
+      for (const kind of ["snack", "lunchbox"] as const) {
+        const ids = slotsOf(lunches, kind).map((k) => lunches[k]);
+        for (let i = 1; i < ids.length; i++) expect(ids[i], `${kind} seed ${seed}`).not.toBe(ids[i - 1]);
+      }
+    }
+  });
+
+  // RFC-2026-006:AC-22
+  test("quantities: snacks and lunchboxes per kid, adult lunches per adult, family lunches for everyone", () => {
+    // Small packs, so a portion more or less shows in the number of packs.
+    const small = buildIndex(lunchDeals.map((d) => ({ ...d, quantity: /kaas|appels/.test(d.name) ? "40 g" : d.quantity })), family);
+    const bought = (lunches: Lunches, ingredient: string) => {
+      const line = realize([], small, { ...family, days: 1 }, lunches).promo.find((l) => l.ingredient.id === ingredient)!;
+      return { units: line.units, pack: packGrams(line.deal.quantity)! };
+    };
+    const units = (needed: number, pack: number) => Math.min(8, Math.ceil(needed / pack));
+
+    const apple = LUNCH["snack-apple"].amounts.apples;
+    const snack = bought({ "0-snack": "snack-apple" }, "apples");
+    expect(snack.units).toBe(units(apple * 2, snack.pack));
+
+    const cheese = LUNCH["cheese-apple-sandwich"].amounts.cheese;
+    const adult = bought({ "0-adult": "cheese-apple-sandwich" }, "cheese");
+    expect(adult.units).toBe(units(cheese * 2, adult.pack));
+    const fam = bought({ "0-family": "cheese-apple-sandwich" }, "cheese");
+    expect(fam.units).toBe(units(cheese * (2 + 0.6 * 2), fam.pack));
+    expect(fam.units).toBeGreaterThan(adult.units);
+  });
+
+  // RFC-2026-006:AC-23
+  test("every lunch ingredient is on a promotion line that names the lunch", () => {
+    const lunches = planLunches(MONDAY, index, family);
+    const plan = realize([], index, family, lunches);
+    for (const [key, id] of Object.entries(lunches)) {
+      if (!id) continue;
+      for (const i of needs(id)) {
+        const line = plan.promo.find((l) => l.ingredient.id === i) ?? plan.regular.find((l) => l.ingredient.id === i)?.line;
+        expect(line, `${key} ${id}: ${i}`).toBeDefined();
+        expect(line!.meals.some((m) => m.endsWith(LUNCH[id].name)), `${key} ${id}`).toBe(true);
+      }
+    }
+    expect(plan.regular.filter((r) => !r.line)).toEqual([]);
+    expect(plan.lunches.map((l) => l.key).sort()).toEqual(Object.keys(lunches).sort());
+  });
+
+  // RFC-2026-006:AC-24
+  test("an ingredient for a dinner and a lunch is one line covering both", () => {
+    const idx = buildIndex([...lunchDeals, deal("Heinz Tomaten gepeld", "soepen-conserven-sauzen", { price: 1, originalPrice: 1.39 })], family);
+    const lunches: Lunches = { "0-adult": "cheese-tomato-sandwich" };
+    const both = realize(["sadza-chicken-stew"], idx, { ...family, days: 1 }, lunches);
+    const tomatoLines = both.promo.filter((l) => l.ingredient.id === "tomatoes");
+    expect(tomatoLines).toHaveLength(1);
+    expect(tomatoLines[0].meals).toEqual([RECIPE["sadza-chicken-stew"].name, `Lunch: ${LUNCH["cheese-tomato-sandwich"].name}`]);
+    const dinnerOnly = realize(["sadza-chicken-stew"], idx, { ...family, days: 1 }).promo.find((l) => l.ingredient.id === "tomatoes")!;
+    expect(tomatoLines[0].units).toBeGreaterThanOrEqual(dinnerOnly.units);
+  });
+
+  // RFC-2026-006:AC-25
+  test("the lunch with the better promotion is planned and offered first", () => {
+    const cheap = buildIndex(
+      lunchDeals.map((d) => (/pindakaas/i.test(d.name) ? { ...d, price: 1, originalPrice: 4.49 } : d)),
+      family,
+    );
+    const lunches = planLunches(MONDAY, cheap, family);
+    expect(lunches["0-lunchbox"]).toBe("box-dovi-apple");
+    // Day 1's planned box differs from day 0's, so the best one is offered first as a swap.
+    expect(lunchOptions(lunches, "1-lunchbox", cheap, family)[0]).toBe("box-dovi-apple");
+  });
+
+  // RFC-2026-006:AC-26
+  test("the budget counts lunch promotions too", () => {
+    const lunches = planLunches(MONDAY, index, family);
+    const dinners = suggest(index, family);
+    expect(weekCost(dinners, index, family, lunches)).toBe(totals(realize(dinners, index, family, lunches).promo).pay);
+    expect(weekCost(dinners, index, family, lunches)).toBeGreaterThan(weekCost(dinners, index, family));
+
+    for (const budget of [1, 10, 30, 1000]) {
+      const prefs = { ...family, budget };
+      const week = planWeek(index, prefs, 0, lunches);
+      expect(week.overBudget, `budget ${budget}`).toBe(weekCost(week.recipeIds, index, prefs, lunches) > budget);
+    }
+  });
+
+  // RFC-2026-006:AC-27
+  test("lunches respect the diet settings, including excluded words", () => {
+    const strict = { ...family, exclude: ["cheese"] };
+    const idx = buildIndex(lunchDeals, strict);
+    for (let seed = 0; seed < 5; seed++)
+      for (const id of Object.values(planLunches(MONDAY, idx, strict, seed))) {
+        if (!id) continue;
+        expect(allowed(LUNCH[id].name, strict), id).toBe(true);
+        for (const i of Object.keys(LUNCH[id].amounts)) expect(allowed(INGREDIENT[i].name, strict), `${id}: ${i}`).toBe(true);
+      }
+    expect(qualifies(LUNCH["box-cheese-cucumber"], idx, strict)).toBe(false);
+  });
+
+  // RFC-2026-006:AC-31
+  test("swap options are other lunches of the same kind that qualify", () => {
+    const lunches = planLunches(MONDAY, index, family);
+    for (const key of Object.keys(lunches)) {
+      const options = lunchOptions(lunches, key, index, family);
+      expect(options).not.toContain(lunches[key]);
+      for (const id of options) {
+        expect(LUNCH[id].kinds).toContain(kindOf(key));
+        expect(qualifies(LUNCH[id], index, family)).toBe(true);
+      }
+    }
+    expect(lunchOptions(lunches, "0-snack", index, family).length).toBeGreaterThan(0);
+  });
+
+  // RFC-2026-006:AC-35
+  test("dinners are planned and listed exactly as before when there are no lunches", () => {
+    const prefs = { ...DEFAULT_PREFS, adults: 2, kids: 0 };
+    const dinners = suggest(index, prefs);
+    expect(realize(dinners, index, prefs, {})).toEqual(realize(dinners, index, prefs));
+    expect(realize(dinners, index, prefs).lunches).toEqual([]);
+    expect(planWeek(index, prefs, 3, {})).toEqual(planWeek(index, prefs, 3));
+    expect(weekCost(dinners, index, prefs, {})).toBe(weekCost(dinners, index, prefs));
   });
 });

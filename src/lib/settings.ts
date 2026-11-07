@@ -23,13 +23,16 @@ export function loadSettings(): Settings {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Partial<Settings>;
     const retailers = (saved.retailers ?? DEFAULT_RETAILERS).filter((r) => r in RETAILERS);
     const budget = saved.prefs?.budget;
+    // Settings from before kids were planned for had one number for everyone at the table.
+    const { people, ...prefs } = (saved.prefs ?? {}) as Partial<Prefs> & { people?: number };
     return {
       ...DEFAULT_SETTINGS,
       ...saved,
       retailers: retailers.length ? retailers : DEFAULT_RETAILERS,
       prefs: {
         ...DEFAULT_PREFS,
-        ...saved.prefs,
+        ...(typeof people === "number" ? { adults: people, kids: 0 } : {}),
+        ...prefs,
         budget: typeof budget === "number" && Number.isFinite(budget) && budget > 0 ? budget : null,
       },
     };

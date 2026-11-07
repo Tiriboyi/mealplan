@@ -126,3 +126,36 @@ describe("weekly budget in Settings", () => {
     expect(field.value).toBe("60.00");
   });
 });
+
+describe("household in Settings", () => {
+  const savedPrefs = () => JSON.parse(localStorage.getItem("mealplan.settings") ?? "{}").prefs;
+  const stepper = (label: string) => within(screen.getByRole("group", { name: label }));
+
+  // RFC-2026-006:AC-1
+  test("asks for adults (1–10, default 2) and kids (0–6, default 0) instead of people", async () => {
+    const { user, save } = await open();
+    expect(screen.queryByText("People at the table")).toBeNull();
+    expect(stepper("Adults").getByRole("status").textContent).toBe("2");
+    expect(stepper("Kids").getByRole("status").textContent).toBe("0");
+    expect((stepper("Kids").getByRole("button", { name: "One fewer" }) as HTMLButtonElement).disabled).toBe(true);
+
+    await user.click(stepper("Kids").getByRole("button", { name: "One more" }));
+    await user.click(stepper("Kids").getByRole("button", { name: "One more" }));
+    await user.click(save()!);
+    expect(savedPrefs()).toMatchObject({ adults: 2, kids: 2 });
+  });
+
+  // RFC-2026-006:AC-1
+  test("kids stop at 6 and adults at 1", async () => {
+    localStorage.setItem("mealplan.settings", JSON.stringify({ ...DEFAULT_SETTINGS, prefs: { ...DEFAULT_SETTINGS.prefs, adults: 1, kids: 6 } }));
+    await open();
+    expect((stepper("Kids").getByRole("button", { name: "One more" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((stepper("Adults").getByRole("button", { name: "One fewer" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  // RFC-2026-006:AC-7
+  test("says until when school holidays are known", async () => {
+    await open();
+    expect(screen.getByText("School holidays (region Midden, Utrecht) known until 20 Aug 2028.")).toBeTruthy();
+  });
+});

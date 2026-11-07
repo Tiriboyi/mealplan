@@ -128,7 +128,7 @@ export default function ShoppingView() {
               <div className="group-head">
                 <h2>At regular price</h2>
               </div>
-              <p className="meta">Needed for these dinners, with no offer worth using this week.</p>
+              <p className="meta">Needed for these meals, with no offer worth using this week.</p>
               <ul className="lines">
                 {plan.regular.map(({ ingredient, line }) => (
                   <li key={ingredient.id}>
@@ -220,6 +220,7 @@ function RetailerList({ retailer, lines }: { retailer: string; lines: PromoLine[
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
+                  <span className="meta line-for">For {line.meals.join(", ")}</span>
                   {deal.promoLabel && <span className="tag offer">{deal.promoLabel}</span>}
                 </span>
               </label>

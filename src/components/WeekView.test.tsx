@@ -127,6 +127,7 @@ describe("lunches on the week view", () => {
     deal("Plus Mandarijnen", "groente-fruit", { price: 2.49, originalPrice: 3.49, quantity: "1 kg", retailer: "plus" }),
     deal("Biologische komkommer", "groente-fruit", { price: 0.99, originalPrice: 1.29, quantity: "1 stuk" }),
     deal("Plus Hummus naturel", "kaas", { price: 1.5, originalPrice: 2.19, quantity: "200 g", retailer: "plus" }),
+    deal("The Flower Farm Pindakaas zonder palmolie", "ontbijt", { price: 3.49, originalPrice: 4.49, quantity: "350 g", retailer: "plus" }),
   ];
   const index = buildIndex(lunchDeals, family);
   const dinners = suggest(index, family);
@@ -166,7 +167,7 @@ describe("lunches on the week view", () => {
     expect(screen.getByText(/2 adults, 2 kids/)).toBeTruthy();
   });
 
-  // RFC-2026-006:AC-8, AC-9, AC-10, AC-29
+  // RFC-2026-006:AC-8 RFC-2026-006:AC-9 RFC-2026-006:AC-10 RFC-2026-006:AC-29
   test("each day shows its meals in time order, by weekday", async () => {
     await openFamily();
     expect(cards()).toHaveLength(7);
@@ -240,7 +241,7 @@ describe("lunches on the week view", () => {
     for (const step of box.steps) expect(sheet.getByText(step)).toBeTruthy();
   });
 
-  // RFC-2026-006:AC-31, AC-32
+  // RFC-2026-006:AC-31 RFC-2026-006:AC-32
   test("swapping a lunchbox changes only that slot, and the swap is saved", async () => {
     const user = await openFamily();
     const options = lunchOptions(lunches, "0-lunchbox", index, family);

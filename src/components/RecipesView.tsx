@@ -11,7 +11,7 @@ import { dayAt, PROTEIN_LABEL, RecipeArt } from "./ui";
 const PROTEINS = Object.keys(PROTEIN_LABEL) as Protein[];
 
 export default function RecipesView() {
-  const { index, recipeIds, openRecipe } = usePlan();
+  const { index, recipeIds, start, openRecipe } = usePlan();
   const [query, setQuery] = useState("");
   const [protein, setProtein] = useState<Protein | null>(null);
 
@@ -94,7 +94,7 @@ export default function RecipesView() {
                     {planned >= 0 && (
                       <span className="tag planned">
                         <CalendarCheck aria-hidden="true" />
-                        {dayAt(planned).long}
+                        {dayAt(start, planned).long}
                       </span>
                     )}
                   </span>

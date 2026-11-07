@@ -2,24 +2,25 @@
 
 import { ArrowLeftRight, ArrowRight, Clock, Shuffle, Tag, Users } from "lucide-react";
 import Link from "next/link";
-import { totals, type Meal } from "@/lib/planner";
+import { KIND_LABEL } from "@/lib/lunches";
+import { totals, type Meal, type PlannedLunch } from "@/lib/planner";
 import { RECIPE } from "@/lib/recipes";
 import { RETAILERS } from "@/lib/retailers";
 import { duration, money } from "@/lib/text";
 import { usePlan } from "./PlanProvider";
 import Status from "./Status";
-import { dayAt, RecipeArt, RetailerBadge, weekRange } from "./ui";
+import { dayAt, household, LunchArt, RecipeArt, RetailerBadge, weekRange } from "./ui";
 
 export default function WeekView() {
-  const { settings, plan, buying, sum, shuffle } = usePlan();
+  const { settings, plan, start, buying, sum, shuffle } = usePlan();
   const upcoming = settings?.status === "upcoming";
 
   return (
     <>
       <div className="page-head">
         <div>
-          <p className="eyebrow">{settings ? weekRange(settings.prefs.days) : " "}</p>
-          <h1>{upcoming ? "Next week's dinners" : "This week's dinners"}</h1>
+          <p className="eyebrow">{settings && start ? weekRange(start, settings.prefs.days) :" "}</p>
+          <h1>{upcoming ? "Next week's meals" : "This week's meals"}</h1>
           {settings && (
             <p className="lede">
               Planned around {upcoming ? "upcoming" : "current"} offers at{" "}
@@ -78,11 +79,10 @@ export default function WeekView() {
           </section>
 
           <div className="section-head">
-            <h2>Dinners</h2>
+            <h2>Meals</h2>
             <p className="meta">
               <Users aria-hidden="true" />
-              {settings.prefs.people} {settings.prefs.people === 1 ? "person" : "people"} ·{" "}
-              <Link href="/settings">Change</Link>
+              {household(settings.prefs)} · <Link href="/settings">Change</Link>
             </p>
           </div>
           <ol className="meals">
@@ -97,20 +97,29 @@ export default function WeekView() {
 }
 
 function MealCard({ meal, position }: { meal: Meal; position: number }) {
-  const { plan, options, openRecipe, openSwap } = usePlan();
+  const { plan, options, start, openRecipe, openSwap } = usePlan();
   const others = options[position] ?? [];
   const { recipe, items } = meal;
-  const day = dayAt(position);
+  const day = dayAt(start, position);
+  const lunches = plan?.lunches.filter((l) => l.day === position) ?? [];
   // Only what the shopping list actually buys on promotion, not every ingredient with an offer.
   const onPromo = items.filter((i) => plan?.promo.some((l) => l.ingredient.id === i.ingredient.id));
 
   return (
-    <li className={position === 0 ? "meal tonight" : "meal"}>
+    <li className={["meal", day.long === "Today" && "tonight", day.past && "past"].filter(Boolean).join(" ")}>
       <RecipeArt recipe={recipe} />
       <div className="meal-body">
         <p className="meal-day">
           <span>{day.long}</span> {day.short} {day.date}
         </p>
+        {lunches.length > 0 && (
+          <ul className="slots" aria-label="Lunches">
+            {lunches.map((l) => (
+              <LunchRow key={l.key} planned={l} />
+            ))}
+          </ul>
+        )}
+        <p className="slot-kind">Dinner</p>
         <h3>
           <button className="meal-title" onClick={() => openRecipe(recipe.id)}>
             {recipe.name}
@@ -152,6 +161,30 @@ function MealCard({ meal, position }: { meal: Meal; position: number }) {
       <button className="icon-button meal-swap" onClick={() => openSwap(position)} aria-label={`Swap ${recipe.name}`}>
         <ArrowLeftRight aria-hidden="true" />
       </button>
+    </li>
+  );
+}
+
+function LunchRow({ planned }: { planned: PlannedLunch }) {
+  const { openLunch, openLunchSwap } = usePlan();
+  const { key, kind, lunch } = planned;
+  const label = KIND_LABEL[kind];
+  return (
+    <li className="slot">
+      <LunchArt kind={kind} />
+      <span className="slot-kind">{label}</span>
+      {lunch ? (
+        <>
+          <button className="slot-name" onClick={() => openLunch(key)}>
+            {lunch.name}
+          </button>
+          <button className="icon-button slot-swap" onClick={() => openLunchSwap(key)} aria-label={`Swap ${label.toLowerCase()}`}>
+            <ArrowLeftRight aria-hidden="true" />
+          </button>
+        </>
+      ) : (
+        <span className="meta slot-name">No lunch idea on promotion at your supermarkets this week</span>
+      )}
     </li>
   );
 }

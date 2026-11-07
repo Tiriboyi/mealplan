@@ -629,8 +629,10 @@ describe("lunches", () => {
 
   // RFC-2026-006:AC-22
   test("quantities: snacks and lunchboxes per kid, adult lunches per adult, family lunches for everyone", () => {
+    // Small packs, so a portion more or less shows in the number of packs.
+    const small = buildIndex(lunchDeals.map((d) => ({ ...d, quantity: /kaas|appels/.test(d.name) ? "40 g" : d.quantity })), family);
     const bought = (lunches: Lunches, ingredient: string) => {
-      const line = realize([], index, { ...family, days: 1 }, lunches).promo.find((l) => l.ingredient.id === ingredient)!;
+      const line = realize([], small, { ...family, days: 1 }, lunches).promo.find((l) => l.ingredient.id === ingredient)!;
       return { units: line.units, pack: packGrams(line.deal.quantity)! };
     };
     const units = (needed: number, pack: number) => Math.min(8, Math.ceil(needed / pack));

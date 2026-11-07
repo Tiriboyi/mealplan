@@ -23,7 +23,9 @@ export type Deal = {
 };
 
 export type Prefs = {
-  people: number;
+  adults: number;
+  /** Primary-school kids; each eats 0.6 of an adult portion at family meals. */
+  kids: number;
   days: number;
   noPork: boolean;
   noShellfish: boolean;
@@ -34,7 +36,8 @@ export type Prefs = {
 };
 
 export const DEFAULT_PREFS: Prefs = {
-  people: 2,
+  adults: 2,
+  kids: 0,
   days: 7,
   noPork: true,
   noShellfish: true,

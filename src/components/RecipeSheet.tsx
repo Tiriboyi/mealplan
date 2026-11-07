@@ -1,17 +1,19 @@
 "use client";
 
-import { ArrowLeftRight, Clock, Tag, Users, Wheat } from "lucide-react";
-import { INGREDIENT } from "@/lib/ingredients";
+import { ArrowLeftRight, Clock, GlassWater, Tag, Users, Wheat } from "lucide-react";
+import { INGREDIENT, type Ingredient } from "@/lib/ingredients";
+import { KIND_LABEL } from "@/lib/lunches";
 import { PHOTOS } from "@/lib/photos";
 import { alternatives } from "@/lib/planner";
 import { RECIPE } from "@/lib/recipes";
 import { RETAILERS } from "@/lib/retailers";
 import { duration, money } from "@/lib/text";
+import type { Deal } from "@/lib/types";
 import { usePlan } from "./PlanProvider";
-import { dayAt, PROTEIN_LABEL, RecipeArt, Sheet } from "./ui";
+import { dayAt, household, LunchArt, PROTEIN_LABEL, RecipeArt, Sheet } from "./ui";
 
 export default function RecipeSheet({ recipeId, day }: { recipeId: string; day?: number }) {
-  const { settings, index, plan, options, recipeIds, replace, openSwap, closeSheet } = usePlan();
+  const { settings, index, plan, options, recipeIds, start, replace, openSwap, closeSheet } = usePlan();
   const recipe = RECIPE[recipeId];
   if (!recipe) return null;
 
@@ -44,7 +46,7 @@ export default function RecipeSheet({ recipeId, day }: { recipeId: string; day?:
       footer={
         planned >= 0 ? (
           <>
-            <span className="meta">Planned for {dayAt(planned).long.toLowerCase()}</span>
+            <span className="meta">Planned for {dayAt(start, planned).long.toLowerCase()}</span>
             <button className="button" onClick={() => openSwap(planned)}>
               <ArrowLeftRight aria-hidden="true" />
               Swap
@@ -52,7 +54,7 @@ export default function RecipeSheet({ recipeId, day }: { recipeId: string; day?:
           </>
         ) : optionDay !== null ? (
           <>
-            <span className="meta">For {dayAt(optionDay).long.toLowerCase()} · Updates your shopping list</span>
+            <span className="meta">For {dayAt(start, optionDay).long.toLowerCase()} · Updates your shopping list</span>
             <button
               className="button"
               onClick={() => {
@@ -78,7 +80,7 @@ export default function RecipeSheet({ recipeId, day }: { recipeId: string; day?:
                     closeSheet();
                   }}
                 >
-                  {dayAt(i).short} {dayAt(i).date}
+                  {dayAt(start, i).short} {dayAt(start, i).date}
                 </button>
               ))}
             </div>
@@ -102,7 +104,7 @@ export default function RecipeSheet({ recipeId, day }: { recipeId: string; day?:
         {settings && (
           <li>
             <Users aria-hidden="true" />
-            Serves {settings.prefs.people}
+            Serves {household(settings.prefs)}
           </li>
         )}
         <li>
@@ -112,28 +114,7 @@ export default function RecipeSheet({ recipeId, day }: { recipeId: string; day?:
       </ul>
 
       <h3>Ingredients</h3>
-      <ul className="ingredients">
-        {ingredients.map(({ ingredient, deal }) => (
-          <li key={ingredient.id}>
-            <span>
-              {ingredient.name}
-              <span className="meta" lang="nl">
-                {ingredient.nl}
-              </span>
-            </span>
-            {deal ? (
-              <span className="tag offer">
-                <Tag aria-hidden="true" />
-                {RETAILERS[deal.retailer]} · {money(deal.price)}
-              </span>
-            ) : ingredient.pantry ? (
-              <span className="tag">Cupboard</span>
-            ) : (
-              <span className="tag">Regular price</span>
-            )}
-          </li>
-        ))}
-      </ul>
+      <Ingredients items={ingredients} />
 
       <h3>Method</h3>
       <ol className="steps">
@@ -142,5 +123,103 @@ export default function RecipeSheet({ recipeId, day }: { recipeId: string; day?:
         ))}
       </ol>
     </Sheet>
+  );
+}
+
+/** A planned snack, lunchbox or lunch, with what the shopping list buys for it. */
+export function LunchSheet({ slot }: { slot: string }) {
+  const { settings, plan, start, openLunchSwap, closeSheet } = usePlan();
+  const planned = plan?.lunches.find((l) => l.key === slot);
+  const lunch = planned?.lunch;
+  if (!settings || !plan || !planned || !lunch) return null;
+
+  const { adults, kids } = settings.prefs;
+  const label = KIND_LABEL[planned.kind];
+  const forWhom =
+    planned.kind === "adult"
+      ? household({ adults, kids: 0 })
+      : planned.kind === "family"
+        ? household(settings.prefs)
+        : `${kids} ${kids === 1 ? "kid" : "kids"}`;
+  const ingredients = planned.items.map(({ ingredient }) => ({
+    ingredient,
+    deal: plan.promo.find((l) => l.ingredient.id === ingredient.id)?.deal,
+  }));
+
+  return (
+    <Sheet
+      title={lunch.name}
+      onClose={closeSheet}
+      footer={
+        <>
+          <span className="meta">
+            {label} · {dayAt(start, planned.day).long.toLowerCase()}
+          </span>
+          <button className="button" onClick={() => openLunchSwap(slot)}>
+            <ArrowLeftRight aria-hidden="true" />
+            Swap
+          </button>
+        </>
+      }
+    >
+      <LunchArt kind={planned.kind} shape="banner" />
+      <p className="eyebrow">
+        {label}
+        {lunch.shona && <span lang="sn"> · {lunch.shona}</span>}
+      </p>
+      <h2>{lunch.name}</h2>
+      <ul className="facts">
+        <li>
+          <Clock aria-hidden="true" />
+          {duration(lunch.minutes)}
+          {lunch.warm && " · warm"}
+        </li>
+        <li>
+          <Users aria-hidden="true" />
+          For {forWhom}
+        </li>
+        <li>
+          <GlassWater aria-hidden="true" />
+          Drink: {lunch.drink}
+        </li>
+      </ul>
+
+      <h3>Ingredients</h3>
+      <Ingredients items={ingredients} />
+
+      <h3>Method</h3>
+      <ol className="steps">
+        {lunch.steps.map((step) => (
+          <li key={step}>{step}</li>
+        ))}
+      </ol>
+    </Sheet>
+  );
+}
+
+function Ingredients({ items }: { items: { ingredient: Ingredient; deal?: Deal }[] }) {
+  return (
+    <ul className="ingredients">
+      {items.map(({ ingredient, deal }) => (
+        <li key={ingredient.id}>
+          <span>
+            {ingredient.name}
+            <span className="meta" lang="nl">
+              {ingredient.nl}
+            </span>
+          </span>
+          {deal ? (
+            <span className="tag offer">
+              <Tag aria-hidden="true" />
+              {RETAILERS[deal.retailer]} · {money(deal.price)}
+            </span>
+          ) : ingredient.pantry ? (
+            <span className="tag">Cupboard</span>
+          ) : (
+            <span className="tag">Regular price</span>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }

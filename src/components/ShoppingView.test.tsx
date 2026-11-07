@@ -137,7 +137,7 @@ describe("lunches on the shopping list", () => {
 
   afterEach(() => vi.useRealTimers());
 
-  // RFC-2026-006:AC-23, AC-26
+  // RFC-2026-006:AC-23 RFC-2026-006:AC-26
   test("each line says which dinners and lunches it is for, and the total includes lunches", async () => {
     localStorage.setItem("mealplan.settings", JSON.stringify({ ...DEFAULT_SETTINGS, prefs: family }));
     localStorage.setItem(

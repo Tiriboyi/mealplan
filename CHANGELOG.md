@@ -4,6 +4,7 @@ All notable changes are recorded here, one line per RFC, by `devrailsv2 done`. D
 
 ## [Unreleased]
 <!-- devrailsv2:unreleased -->
+- RFC-2026-007: Show real store logos for Albert Heijn, Jumbo and Plus ([CR-2026-007](docs/changes/CR-2026-007-show-real-store-logos-for-albert-heijn-jumbo-and-p.md))
 - RFC-2026-006: Lunches and school lunchboxes for a family with kids ([CR-2026-006](docs/changes/CR-2026-006-lunches-and-school-lunchboxes-for-a-family-with-ki.md))
 - RFC-2026-005: Dinner options from the shopping list ([CR-2026-005](docs/changes/CR-2026-005-dinner-options-from-the-shopping-list.md))
 - RFC-2026-001: Weekly budget limit for the meal plan ([CR-2026-001](docs/changes/CR-2026-001-weekly-budget-limit-for-the-meal-plan.md))

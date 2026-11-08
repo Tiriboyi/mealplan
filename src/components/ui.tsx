@@ -2,6 +2,9 @@
 
 import { Apple, Backpack, Bean, Beef, CookingPot, Drumstick, Egg, Fish, Sandwich, Soup, X, type LucideIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
+import ahLogo from "@/app/logos/Albert_Heijn_Logo.svg";
+import jumboLogo from "@/app/logos/Jumbo_Logo.svg.png";
+import plusLogo from "@/app/logos/plus-supermarkt-logo-png_seeklogo-277715.png";
 import type { LunchKind } from "@/lib/lunches";
 import { PHOTOS, photoUrl } from "@/lib/photos";
 import type { Protein, Recipe } from "@/lib/recipes";
@@ -71,7 +74,25 @@ export function household({ adults, kids }: { adults: number; kids: number }): s
   return kids > 0 ? `${a}, ${kids} ${kids === 1 ? "kid" : "kids"}` : a;
 }
 
+// Next imports images as StaticImageData; Vite (in tests) as a URL string.
+type ImageImport = string | { src: string };
+
+const LOGOS: Record<string, { image: ImageImport; wide?: boolean }> = {
+  albert_heijn: { image: ahLogo },
+  jumbo: { image: jumboLogo, wide: true },
+  plus: { image: plusLogo },
+};
+
 export function RetailerBadge({ retailer }: { retailer: string }) {
+  const logo = LOGOS[retailer];
+  if (logo) {
+    const src = typeof logo.image === "string" ? logo.image : logo.image.src;
+    return (
+      <span className={`retailer-badge logo ${retailer}${logo.wide ? " wide" : ""}`} aria-hidden="true">
+        <img src={src} alt="" decoding="async" />
+      </span>
+    );
+  }
   return (
     <span className={`retailer-badge ${retailer}`} aria-hidden="true">
       {RETAILERS[retailer]?.[0] ?? "?"}

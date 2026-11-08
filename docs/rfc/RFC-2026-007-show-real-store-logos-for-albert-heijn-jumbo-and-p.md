@@ -76,11 +76,11 @@ Wherever the store badge appears, Albert Heijn, Jumbo and Plus show their real l
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Given the retailer is `albert_heijn`, `jumbo` or `plus`, when `RetailerBadge` renders, then it shows that store's logo image instead of the first letter.
-- [ ] AC-2: Given the retailer is any other known store (for example `lidl`), when `RetailerBadge` renders, then it shows the first letter of the store name as today and no image.
-- [ ] AC-3: Given an unknown retailer key, when `RetailerBadge` renders, then it shows "?" as today and no image.
-- [ ] AC-4: Given a logo badge, when it renders, then the badge is still hidden from assistive technology (the image has an empty `alt` and the badge keeps `aria-hidden="true"`), because the store name is already printed next to it.
-- [ ] AC-5: Given the Jumbo badge, when it renders, then it gets a wider badge that fits the wordmark (same 26 px height), so the logo is not squeezed into the square.
+- [x] AC-1: Given the retailer is `albert_heijn`, `jumbo` or `plus`, when `RetailerBadge` renders, then it shows that store's logo image instead of the first letter.
+- [x] AC-2: Given the retailer is any other known store (for example `lidl`), when `RetailerBadge` renders, then it shows the first letter of the store name as today and no image.
+- [x] AC-3: Given an unknown retailer key, when `RetailerBadge` renders, then it shows "?" as today and no image.
+- [x] AC-4: Given a logo badge, when it renders, then the badge is still hidden from assistive technology (the image has an empty `alt` and the badge keeps `aria-hidden="true"`), because the store name is already printed next to it.
+- [x] AC-5: Given the Jumbo badge, when it renders, then it gets a wider badge that fits the wordmark (same 26 px height), so the logo is not squeezed into the square.
 
 ## Out Of Scope
 
@@ -109,3 +109,4 @@ Wherever the store badge appears, Albert Heijn, Jumbo and Plus show their real l
 | 2026-11-08 | Fortune Tiriboyi | Created draft |
 | 2026-11-08 | Claude | Filled in request, evidence, criteria and open decisions |
 | 2026-11-08 | Fortune Tiriboyi <tiriboyifortune@gmail.com> | Approved |
+| 2026-11-08 | Fortune Tiriboyi | Implemented — see CR-2026-007 |

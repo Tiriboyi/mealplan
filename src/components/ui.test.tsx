@@ -11,16 +11,16 @@ function badge(retailer: string) {
 }
 
 describe("RetailerBadge", () => {
-  test.each([
-    ["albert_heijn", "Albert_Heijn_Logo"],
-    ["jumbo", "Jumbo_Logo"],
-    ["plus", "plus-supermarkt-logo"],
-  ])("RFC-2026-007:AC-1 %s shows its logo instead of a letter", (retailer, file) => {
-    const el = badge(retailer);
-    const img = el.querySelector("img");
-    expect(img).not.toBeNull();
-    expect(img!.getAttribute("src")).toContain(file);
-    expect(el.textContent).toBe("");
+  test("RFC-2026-007:AC-1 Albert Heijn, Jumbo and Plus each show their own logo instead of a letter", () => {
+    // Vite inlines small assets as data URIs in tests, so compare sources rather than file names.
+    const sources = ["albert_heijn", "jumbo", "plus"].map((retailer) => {
+      const el = badge(retailer);
+      expect(el.textContent).toBe("");
+      const src = el.querySelector("img")?.getAttribute("src");
+      expect(src).toBeTruthy();
+      return src;
+    });
+    expect(new Set(sources).size).toBe(3);
   });
 
   test("RFC-2026-007:AC-2 other stores keep the letter and no image", () => {
